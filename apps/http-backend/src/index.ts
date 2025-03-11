@@ -3,14 +3,17 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common/src/index";
 import { middleware } from "./middleware";
 import {CreateUserSchema, signInSchema, CreateRoomSchema} from "@repo/common/src/types";
+import {prismaClient} from  "@repo/db/src/index"; 
+
 
 
  const app = express();
 
  app.post("/signup", (req, res) => {
     
-     const data = CreateUserSchema.safeParse(req.body);
-     if(!data.success){
+     const parsedData = CreateUserSchema.safeParse(req.body);
+
+     if(!parsedData.success){
          res.status(400).json(
           {
             message: "Incorrect Inputs"
@@ -18,12 +21,29 @@ import {CreateUserSchema, signInSchema, CreateRoomSchema} from "@repo/common/src
          );
          return;
      }
+    
+     try {
 
+       //creating a user here....
+     prismaClient.user.create({
+      data:{
+          email: parsedData.data?.username,
+          password: parsedData.data?.password,
+          name: parsedData.data?.name,
+      }
+     })
 
     //db call
      res.json({
         userId: "123"
      })
+     } catch (error) {
+    res.status(411).json({
+      message: "User already exist"
+    });
+     }
+
+
  })
 
   app.post("/signin", (req, res) => {
