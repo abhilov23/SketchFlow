@@ -17,6 +17,7 @@
     "@types/ws": "^8.18.0",
     "jsonwebtoken": "^9.0.2",
     "ws": "^8.18.1",
-    "@repo/backend-common": "workspace:*"
+    "@repo/backend-common": "workspace:*",
+    "@repo/common": "workspace:*"
   }
 }
