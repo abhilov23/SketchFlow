@@ -36,6 +36,9 @@ importers:
       '@repo/common':
         specifier: workspace:*
         version: link:../../packages/common
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -104,6 +107,9 @@ importers:
 
   packages/backend-common:
     dependencies:
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
       zod:
         specifier: ^3.24.2
         version: 3.24.2
@@ -120,6 +126,9 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      tsc:
+        specifier: ^2.0.4
+        version: 2.0.4
       zod:
         specifier: ^3.24.2
         version: 3.24.2
@@ -1140,6 +1149,10 @@ packages:
 
   dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+
+  dotenv@16.4.7:
+    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -2420,6 +2433,10 @@ packages:
       '@swc/wasm':
         optional: true
 
+  tsc@2.0.4:
+    resolution: {integrity: sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==}
+    hasBin: true
+
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
 
@@ -3526,6 +3543,8 @@ snapshots:
       no-case: 2.3.2
 
   dotenv@16.0.3: {}
+
+  dotenv@16.4.7: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -5146,6 +5165,8 @@ snapshots:
       typescript: 5.8.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
+
+  tsc@2.0.4: {}
 
   tslib@1.14.1: {}
 

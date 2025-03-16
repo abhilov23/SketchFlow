@@ -7,10 +7,11 @@
   },
   "dependencies": {
     "@repo/typescript-config": "workspace:*",
+    "tsc": "^2.0.4",
     "zod": "^3.24.2"
   },
-  "exports":{
-    "./types":"./src/types.ts"
+  "exports": {
+    "./types": "./src/types.ts"
   },
   "keywords": [],
   "author": "",
