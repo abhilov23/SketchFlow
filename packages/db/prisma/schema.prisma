@@ -8,7 +8,7 @@ datasource db {
 }
 
 
-model User{
+model User {
    id         String        @id @default(uuid())
    email      String
    password   String
@@ -18,7 +18,7 @@ model User{
    chats       Chat[] 
 }
 
-model Room{
+model Room {
    id           Int        @id @default(autoincrement())
    slug         String     @unique
    createdAt    DateTime  @default(now())
