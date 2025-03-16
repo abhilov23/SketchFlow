@@ -1,2 +1,2 @@
-const JWT_SECRET: string = process.env.JWT_SECRET || "123456";
+const JWT_SECRET: string = process.env.JWT_SECRET || "helloooooo123";
 export default JWT_SECRET;
