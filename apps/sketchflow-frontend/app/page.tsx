@@ -118,10 +118,10 @@ export default function LandingPage() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="#" className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300">
+          <Link href="/signin" className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300">
             Log In
           </Link>
-          <Button className="btn-primary flex justify-between">
+          <Button onClick={() => router.push("/signup")} className="btn-primary flex justify-between">
             Try Now
           </Button>
         </div>
