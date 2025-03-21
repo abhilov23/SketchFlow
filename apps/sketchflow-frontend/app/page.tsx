@@ -157,7 +157,7 @@ export default function LandingPage() {
                       {[...Array(9)].map((_, i) => (
                         <div
                           key={i}
-                          className={`h-16 rounded-lg ${
+                          className={`h-16 rounded ${
                             i % 3 === 0 ? "bg-gray-600/60" : i % 3 === 1 ? "bg-gray-500/60" : "bg-gray-400/60"
                           } backdrop-blur-md animate-float-subtle hover:scale-105 transition-transform duration-300`}
                           style={{ animationDelay: `${i * 0.2}s` }}
@@ -430,13 +430,13 @@ export default function LandingPage() {
           © {new Date().getFullYear()} SketchFlow. All rights reserved.
         </p>
         <nav className="flex gap-4 sm:gap-6">
-          <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
+          <Link href="/terms" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
             Terms
           </Link>
-          <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
+          <Link href="/privacy" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
             Privacy
           </Link>
-          <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
+          <Link href="/contract" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
             Contact
           </Link>
         </nav>
