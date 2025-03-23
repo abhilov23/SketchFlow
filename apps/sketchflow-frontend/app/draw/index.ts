@@ -19,7 +19,6 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     const ctx = canvas.getContext("2d");     
        
     let existingShapes: Shape[] = await getExistingDShapes(roomId);
-    
 
 
        if(!ctx){
@@ -33,6 +32,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
 
           if(message.type=="chat"){
             const parsedShape = JSON.parse(message.message);
+            console.log(parsedShape.shape);
             existingShapes.push(parsedShape);
             clearCanvas(existingShapes, canvas, ctx);
         }
@@ -107,7 +107,12 @@ async function getExistingDShapes(roomId: string){
    const shapes = messages.map((x: {message: string}) => {
     try {
         console.log('x.message:', x.message)
-        return x.message.startsWith("{") ? JSON.parse(x.message) : { text: x.message };
+        const parsedMessage = x.message.startsWith("{") ? JSON.parse(x.message) : { text: x.message };
+        if ("shape" in parsedMessage) {
+            return parsedMessage.shape; // Return only the shape object
+        }
+    
+        return parsedMessage; // Return full parsed message if `shape` is not present
     } catch (e) {
         console.warn("Invalid JSON format in message:", x.message);
         return { text: x.message }; // Fallback to plain string
