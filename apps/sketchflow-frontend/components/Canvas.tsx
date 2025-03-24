@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { initDraw } from "@/app/draw";
 import { IconButton } from "./IconButton";
-import { Circle, Minus, RectangleHorizontalIcon } from "lucide-react";
+import { Circle, Minus, Pencil, RectangleHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 
 
-type Shape = "circle" | "rect" | "line";
+type Shape = "circle" | "rect" | "line" | "pencil";
 
 
 export function Canvas({
@@ -72,6 +72,9 @@ function Topbar({selectedTool, setSelectedTool}:{
         }}></IconButton>
         <IconButton activated={selectedTool === "circle"} icon={<Circle/>} onClick={()=>{
             setSelectedTool("circle");
+        }}></IconButton>
+        <IconButton activated={selectedTool === "pencil"} icon={<Pencil/>} onClick={()=>{
+            setSelectedTool("pencil");
         }}></IconButton>
         </div>
     </div>

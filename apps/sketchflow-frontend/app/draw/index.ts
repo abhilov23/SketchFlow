@@ -2,14 +2,14 @@ import axios from 'axios';
 import { HTTP_BACKEND } from '../config';
 
 // Define tool types
-const VALID_TOOLS = ['rect', 'circle', 'line'] as const;
+const VALID_TOOLS = ['rect', 'circle', 'line', 'pencil'] as const;
 type DrawingTool = typeof VALID_TOOLS[number];
 
 type Shape = 
   | { type: 'rect'; x: number; y: number; width: number; height: number; }
   | { type: 'circle'; centerX: number; centerY: number; radius: number; }
   | { type: 'line'; startX: number; startY: number; endX: number; endY: number; }
-  | {type: 'pencil'; startX: number; startY: number; endX: number; endY: number;};
+  | { type: 'pencil'; points: { x: number; y: number }[] };
 
 // Extend Window interface
 interface CustomWindow extends Window {
@@ -54,6 +54,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
   let isDrawing = false;
   let startX = 0;
   let startY = 0;
+  let pencilPoints: { x: number; y: number }[] = []; //for storing pencil points
 
   // Get canvas-adjusted coordinates
   const getCanvasPos = (e: MouseEvent) => {
@@ -69,6 +70,9 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     const pos = getCanvasPos(e);
     startX = pos.x;
     startY = pos.y;
+    if (window.selectedTool === 'pencil') {
+      pencilPoints = [{ x: startX, y: startY }]; // Initialize pencil points
+    }
   });
 
   canvas.addEventListener('mousemove', (e) => {
@@ -101,6 +105,15 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
         break;
+      case 'pencil':
+        pencilPoints.push({ x: pos.x, y: pos.y });
+        ctx.beginPath();
+        ctx.moveTo(pencilPoints[0].x, pencilPoints[0].y);
+        for (let i = 1; i < pencilPoints.length; i++) {
+          ctx.lineTo(pencilPoints[i].x, pencilPoints[i].y);
+        }
+        ctx.stroke();
+        break;
     }
   });
 
@@ -129,6 +142,11 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       case 'line':
         shape = { type: 'line', startX, startY, endX: pos.x, endY: pos.y };
         break;
+      case 'pencil':
+        pencilPoints.push({ x: pos.x, y: pos.y });
+        shape = { type: 'pencil', points: [...pencilPoints] };
+        pencilPoints = []; // Reset pencil points
+        break;
       default:
         return;
     }
@@ -139,6 +157,22 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       roomId,
       message: JSON.stringify({ shape })
     }));
+  });
+
+  // Handle case when mouse leaves canvas while drawing
+  canvas.addEventListener('mouseleave', () => {
+    if (isDrawing && window.selectedTool === 'pencil') {
+      isDrawing = false;
+      const shape: Shape = { type: 'pencil', points: [...pencilPoints] };
+      existingShapes.push(shape);
+      socket.send(JSON.stringify({
+        type: 'chat',
+        roomId,
+        message: JSON.stringify({ shape })
+      }));
+      pencilPoints = [];
+      clearCanvas(existingShapes, canvas, ctx);
+    }
   });
 }
 
@@ -163,6 +197,16 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
         ctx.moveTo(shape.startX, shape.startY);
         ctx.lineTo(shape.endX, shape.endY);
         ctx.stroke();
+        break;
+      case 'pencil':
+        if (shape.points.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(shape.points[0].x, shape.points[0].y);
+          for (let i = 1; i < shape.points.length; i++) {
+            ctx.lineTo(shape.points[i].x, shape.points[i].y);
+          }
+          ctx.stroke();
+        }
         break;
     }
   });
