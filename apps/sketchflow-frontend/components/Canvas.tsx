@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { initDraw } from "@/app/draw";
 import { IconButton } from "./IconButton";
-import { Circle, Pencil, RectangleHorizontalIcon } from "lucide-react";
+import { Circle, Minus, RectangleHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 
 
-type Shape = "circle" | "rect" | "pencil";
+type Shape = "circle" | "rect" | "line";
 
 
 export function Canvas({
@@ -17,6 +17,13 @@ export function Canvas({
 }){
     const canvasRef = useRef<HTMLCanvasElement>(null);   
     const [selectedTool, setSelectedTool] = useState<Shape>("circle");
+
+       useEffect(()=>{
+        //@ts-ignore
+        window.selectedTool = selectedTool;
+       },[selectedTool])
+
+
 
         useEffect(()=>{
 
@@ -36,7 +43,7 @@ export function Canvas({
         }}
         >
         <canvas ref={canvasRef} width={window.innerWidth} height={window.innerHeight} className="block mx-auto"></canvas>
-        <Topbar selectedTool={selectedTool}/>
+        <Topbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
   </div>
 
     )
@@ -57,8 +64,8 @@ function Topbar({selectedTool, setSelectedTool}:{
     >
         <div className="flex gap-1">
 
-        <IconButton activated={selectedTool === "pencil"}  icon={<Pencil/>} onClick={()=>{
-            setSelectedTool("pencil");
+        <IconButton activated={selectedTool === "line"}  icon={<Minus rotate={90}/>} onClick={()=>{
+            setSelectedTool("line");
         }}></IconButton>
         <IconButton  activated={selectedTool === "rect"}  icon={<RectangleHorizontalIcon/>} onClick={()=>{
             setSelectedTool("rect");
