@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { initDraw } from "@/app/draw";
 import { IconButton } from "./IconButton";
-import { Circle, Minus, Pencil, RectangleHorizontalIcon } from "lucide-react";
+import { Circle, Diamond, Minus, Pencil, RectangleHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 
 
-type Shape = "circle" | "rect" | "line" | "pencil";
+type Shape = "circle" | "rect" | "line" | "pencil" | "diamond";
 
 
 export function Canvas({
@@ -63,7 +63,9 @@ function Topbar({selectedTool, setSelectedTool}:{
     }}
     >
         <div className="flex gap-1">
-
+        <IconButton activated={selectedTool === "pencil"} icon={<Pencil/>} onClick={()=>{
+            setSelectedTool("pencil");
+        }}></IconButton>
         <IconButton activated={selectedTool === "line"}  icon={<Minus rotate={90}/>} onClick={()=>{
             setSelectedTool("line");
         }}></IconButton>
@@ -73,8 +75,8 @@ function Topbar({selectedTool, setSelectedTool}:{
         <IconButton activated={selectedTool === "circle"} icon={<Circle/>} onClick={()=>{
             setSelectedTool("circle");
         }}></IconButton>
-        <IconButton activated={selectedTool === "pencil"} icon={<Pencil/>} onClick={()=>{
-            setSelectedTool("pencil");
+        <IconButton activated={selectedTool === "diamond"} icon={<Diamond/>} onClick={()=>{
+            setSelectedTool("diamond");
         }}></IconButton>
         </div>
     </div>

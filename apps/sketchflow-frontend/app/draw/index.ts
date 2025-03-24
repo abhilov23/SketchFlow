@@ -2,14 +2,15 @@ import axios from 'axios';
 import { HTTP_BACKEND } from '../config';
 
 // Define tool types
-const VALID_TOOLS = ['rect', 'circle', 'line', 'pencil'] as const;
+const VALID_TOOLS = ['rect', 'circle', 'line', 'pencil', 'diamond'] as const;
 type DrawingTool = typeof VALID_TOOLS[number];
 
 type Shape = 
   | { type: 'rect'; x: number; y: number; width: number; height: number; }
   | { type: 'circle'; centerX: number; centerY: number; radius: number; }
   | { type: 'line'; startX: number; startY: number; endX: number; endY: number; }
-  | { type: 'pencil'; points: { x: number; y: number }[] };
+  | { type: 'pencil'; points: { x: number; y: number }[] }
+  | { type: 'diamond'; centerX: number; centerY: number; width: number; height: number };
 
 // Extend Window interface
 interface CustomWindow extends Window {
@@ -114,6 +115,17 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         }
         ctx.stroke();
         break;
+        case 'diamond':
+          ctx.beginPath();
+          const midX = startX + width / 2;
+          const midY = startY + height / 2;
+          ctx.moveTo(midX, startY);          
+          ctx.lineTo(startX + width, midY);   
+          ctx.lineTo(midX, startY + height);  
+          ctx.lineTo(startX, midY);           
+          ctx.closePath();
+          ctx.stroke();
+          break;
     }
   });
 
@@ -147,6 +159,15 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         shape = { type: 'pencil', points: [...pencilPoints] };
         pencilPoints = []; // Reset pencil points
         break;
+        case 'diamond':
+          shape = {
+            type: 'diamond',
+            centerX: startX + width / 2,
+            centerY: startY + height / 2,
+            width,
+            height
+          };
+          break;
       default:
         return;
     }
@@ -208,6 +229,18 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
           ctx.stroke();
         }
         break;
+        case 'diamond':
+          ctx.beginPath();
+          const halfWidth = shape.width / 2;
+          const halfHeight = shape.height / 2;
+          ctx.moveTo(shape.centerX, shape.centerY - halfHeight);           // Top
+          ctx.lineTo(shape.centerX + halfWidth, shape.centerY);           // Right
+          ctx.lineTo(shape.centerX, shape.centerY + halfHeight);          // Bottom
+          ctx.lineTo(shape.centerX - halfWidth, shape.centerY);           // Left
+          ctx.closePath();
+          ctx.stroke();
+          break;
+      
     }
   });
 }
