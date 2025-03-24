@@ -33,7 +33,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
           if(message.type=="chat"){
             const parsedShape = JSON.parse(message.message);
             console.log(parsedShape.shape);
-            existingShapes.push(parsedShape);
+            existingShapes.push(parsedShape.shape);
             clearCanvas(existingShapes, canvas, ctx);
         }
         }

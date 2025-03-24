@@ -25,7 +25,7 @@ export function RoomCanvas({roomId}:{roomId: string}){
    
 
    if(!socket){
-     return <p>Loading...</p>  // Show loading spinner here if socket is not established yet.
+     return <p>Connecting to Server...</p>  // Show loading spinner here if socket is not established yet.
    }
 
    return <> 
