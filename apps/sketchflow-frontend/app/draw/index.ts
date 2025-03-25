@@ -37,7 +37,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         const parsedShape = JSON.parse(message.message);
         if (parsedShape.shape) {
           existingShapes.push(parsedShape.shape);
-          clearCanvas(existingShapes, canvas, ctx);
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
         }
       }
     } catch (error) {
@@ -48,35 +48,57 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
   socket.onerror = (error) => console.error('WebSocket error:', error);
   socket.onclose = () => console.log('WebSocket connection closed');
 
-  // Initial render
-  clearCanvas(existingShapes, canvas, ctx);
-
   // Drawing state
   let isDrawing = false;
   let startX = 0;
   let startY = 0;
-  let pencilPoints: { x: number; y: number }[] = []; //for storing pencil points
+  let pencilPoints: { x: number; y: number }[] = [];
+  let isPanning = false;
+  let panStartX = 0;
+  let panStartY = 0;
+  let offsetX = 0; 
+  let offsetY = 0;
+  let zoom = 1.0; 
 
-  // Get canvas-adjusted coordinates
+ 
   const getCanvasPos = (e: MouseEvent) => {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: (e.clientX - rect.left - offsetX) / zoom,
+      y: (e.clientY - rect.top - offsetY) / zoom
     };
   };
 
   canvas.addEventListener('mousedown', (e) => {
-    isDrawing = true;
     const pos = getCanvasPos(e);
     startX = pos.x;
     startY = pos.y;
+
+    if (e.button === 1 || (e.shiftKey && e.button === 0)) { 
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      return;
+    }
+
+    isDrawing = true;
     if (window.selectedTool === 'pencil') {
-      pencilPoints = [{ x: startX, y: startY }]; // Initialize pencil points
+      pencilPoints = [{ x: startX, y: startY }];
     }
   });
 
   canvas.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      const dx = e.clientX - panStartX;
+      const dy = e.clientY - panStartY;
+      offsetX += dx;
+      offsetY += dy;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      return;
+    }
+
     if (!isDrawing) return;
     
     const pos = getCanvasPos(e);
@@ -85,8 +107,9 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     const selectedTool = window.selectedTool || 'rect';
 
     // Preview drawing
-    clearCanvas(existingShapes, canvas, ctx);
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
     ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+    applyTransform(ctx, offsetX, offsetY, zoom);
 
     switch (selectedTool) {
       case 'rect':
@@ -115,21 +138,26 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         }
         ctx.stroke();
         break;
-        case 'diamond':
-          ctx.beginPath();
-          const midX = startX + width / 2;
-          const midY = startY + height / 2;
-          ctx.moveTo(midX, startY);          
-          ctx.lineTo(startX + width, midY);   
-          ctx.lineTo(midX, startY + height);  
-          ctx.lineTo(startX, midY);           
-          ctx.closePath();
-          ctx.stroke();
-          break;
+      case 'diamond':
+        ctx.beginPath();
+        const midX = startX + width / 2;
+        const midY = startY + height / 2;
+        ctx.moveTo(midX, startY);
+        ctx.lineTo(startX + width, midY);
+        ctx.lineTo(midX, startY + height);
+        ctx.lineTo(startX, midY);
+        ctx.closePath();
+        ctx.stroke();
+        break;
     }
   });
 
   canvas.addEventListener('mouseup', (e) => {
+    if (isPanning) {
+      isPanning = false;
+      return;
+    }
+
     if (!isDrawing) return;
     isDrawing = false;
 
@@ -157,17 +185,17 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       case 'pencil':
         pencilPoints.push({ x: pos.x, y: pos.y });
         shape = { type: 'pencil', points: [...pencilPoints] };
-        pencilPoints = []; // Reset pencil points
+        pencilPoints = [];
         break;
-        case 'diamond':
-          shape = {
-            type: 'diamond',
-            centerX: startX + width / 2,
-            centerY: startY + height / 2,
-            width,
-            height
-          };
-          break;
+      case 'diamond':
+        shape = {
+          type: 'diamond',
+          centerX: startX + width / 2,
+          centerY: startY + height / 2,
+          width,
+          height
+        };
+        break;
       default:
         return;
     }
@@ -178,9 +206,10 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       roomId,
       message: JSON.stringify({ shape })
     }));
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
   });
 
-  // Handle case when mouse leaves canvas while drawing
+  
   canvas.addEventListener('mouseleave', () => {
     if (isDrawing && window.selectedTool === 'pencil') {
       isDrawing = false;
@@ -192,17 +221,55 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         message: JSON.stringify({ shape })
       }));
       pencilPoints = [];
-      clearCanvas(existingShapes, canvas, ctx);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+    }
+    isPanning = false;
+  });
+
+  // Zoom handling
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.ctrlKey) {
+      const zoomFactor = 0.1;
+      const mouseX = e.clientX - canvas.getBoundingClientRect().left;
+      const mouseY = e.clientY - canvas.getBoundingClientRect().top;
+      
+      const oldZoom = zoom;
+      zoom += e.deltaY < 0 ? zoomFactor : -zoomFactor;
+      zoom = Math.max(0.1, Math.min(zoom, 5.0)); 
+
+      // Adjust offset to zoom towards mouse
+      offsetX = mouseX - (mouseX - offsetX) * (zoom / oldZoom);
+      offsetY = mouseY - (mouseY - offsetY) * (zoom / oldZoom);
+
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+    } else { 
+      offsetX -= e.deltaX;
+      offsetY -= e.deltaY;
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
     }
   });
+
+  
+  clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
 }
 
-function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
+// Moved applyTransform outside initDraw
+function applyTransform(ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); 
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(zoom, zoom);
+}
+
+function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = 'rgba(0, 0, 0, 1)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+  applyTransform(ctx, offsetX, offsetY, zoom);
+
   existingShapes.forEach((shape) => {
     switch (shape.type) {
       case 'rect':
@@ -229,18 +296,17 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
           ctx.stroke();
         }
         break;
-        case 'diamond':
-          ctx.beginPath();
-          const halfWidth = shape.width / 2;
-          const halfHeight = shape.height / 2;
-          ctx.moveTo(shape.centerX, shape.centerY - halfHeight);           // Top
-          ctx.lineTo(shape.centerX + halfWidth, shape.centerY);           // Right
-          ctx.lineTo(shape.centerX, shape.centerY + halfHeight);          // Bottom
-          ctx.lineTo(shape.centerX - halfWidth, shape.centerY);           // Left
-          ctx.closePath();
-          ctx.stroke();
-          break;
-      
+      case 'diamond':
+        ctx.beginPath();
+        const halfWidth = shape.width / 2;
+        const halfHeight = shape.height / 2;
+        ctx.moveTo(shape.centerX, shape.centerY - halfHeight);
+        ctx.lineTo(shape.centerX + halfWidth, shape.centerY);
+        ctx.lineTo(shape.centerX, shape.centerY + halfHeight);
+        ctx.lineTo(shape.centerX - halfWidth, shape.centerY);
+        ctx.closePath();
+        ctx.stroke();
+        break;
     }
   });
 }
