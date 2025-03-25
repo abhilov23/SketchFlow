@@ -12,7 +12,7 @@ type Shape =
   | { type: 'pencil'; points: { x: number; y: number }[] }
   | { type: 'diamond'; centerX: number; centerY: number; width: number; height: number };
 
-// Extend Window interface
+// Extend Window interface for custom-Window
 interface CustomWindow extends Window {
   selectedTool?: DrawingTool;
 }
