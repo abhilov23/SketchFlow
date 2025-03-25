@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CreateUserSchema, SigninSchema } from "@repo/common/frontendTypes"; // Adjust path as needed
 
-// Custom CSS (unchanged)
+// Custom CSS (unchanged, with error styling)
 const customStyles = `
   .shadow-glow { box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); }
   .hover-glow:hover { box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
@@ -48,43 +49,58 @@ const customStyles = `
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
   }
   .input-field::placeholder { color: rgba(255, 255, 255, 0.4); }
+  .error-text { color: #f87171; font-size: 0.875rem; margin-top: 0.25rem; }
 `;
 
 export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(""); // New state for name
+  const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({}); // Validation errors
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
+    setErrors({});
 
-    const endpoint = isSignIn ? "/signin" : "/signup"; // Added /api prefix to match backend
-    const url = `http://localhost:3005${endpoint}`; // Your backend URL
+    // Select schema based on signin or signup
+    const schema = isSignIn ? SigninSchema : CreateUserSchema;
+    const data = isSignIn ? { username, password } : { username, password, name };
+
+    // Validate with Zod
+    const result = schema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: { [key: string]: string } = {};
+      result.error.errors.forEach((err) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setErrors(fieldErrors);
+      setIsLoading(false);
+      return;
+    }
+
+    const endpoint = isSignIn ? "/signin" : "/signup"; // Fixed endpoint
+    const url = `http://localhost:3005${endpoint}`;
 
     try {
-      const body = isSignIn
-        ? { username, password }
-        : { username, password, name }; 
-
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+        throw new Error(responseData.message || "Something went wrong");
       }
 
       if (isSignIn) {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", responseData.token);
         setMessage("Signed in successfully!");
         router.push("/dashboard");
       } else {
@@ -128,9 +144,10 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
               className="w-full input-field"
               required
             />
+            {errors.username && <p className="error-text">{errors.username}</p>}
           </div>
 
-          {!isSignIn && ( // Show name field only for signup
+          {!isSignIn && (
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                 Name
@@ -144,6 +161,7 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
                 className="w-full input-field"
                 required
               />
+              {errors.name && <p className="error-text">{errors.name}</p>}
             </div>
           )}
 
@@ -160,6 +178,7 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
               className="w-full input-field"
               required
             />
+            {errors.password && <p className="error-text">{errors.password}</p>}
           </div>
 
           <button
