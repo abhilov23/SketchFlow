@@ -436,9 +436,7 @@ export default function LandingPage() {
           <Link href="/privacy" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
             Privacy
           </Link>
-          <Link href="/contract" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
-            Contact
-          </Link>
+          
         </nav>
       </footer>
     </div>

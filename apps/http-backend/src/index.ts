@@ -103,6 +103,32 @@ app.post("/room", middleware, async (req, res) => {
     }
 })
 
+
+
+app.get("/rooms", middleware, async (req, res) => {
+    
+    // @ts-ignore: TODO: Fix this
+    const userId = req.userId;
+
+    try {
+        const room = await prismaClient.room.findMany({
+            where: {
+                adminId: userId
+            }
+        })
+
+        res.json({
+             room
+        })
+    } catch(e) {
+        res.status(411).json({
+            message: "no room found"
+        })
+    }
+})
+
+
+
 app.get("/chats/:roomId", async (req, res) => {
     try {
         const roomId = Number(req.params.roomId);
