@@ -69,7 +69,7 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
     try {
       const body = isSignIn
         ? { username, password }
-        : { username, password, name }; // Include name only for signup
+        : { username, password, name }; 
 
       const response = await fetch(url, {
         method: "POST",
@@ -88,7 +88,7 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
         setMessage("Signed in successfully!");
         router.push("/dashboard");
       } else {
-        setMessage("Account created! Please sign in.");
+        setMessage("Account created successfully! Please sign in.");
         setUsername("");
         setPassword("");
         setName("");
