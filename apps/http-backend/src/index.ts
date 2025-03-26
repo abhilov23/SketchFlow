@@ -128,6 +128,29 @@ app.get("/rooms", middleware, async (req, res) => {
 })
 
 
+app.delete("/room/:slug", middleware, async (req, res) => {
+  const {slug} = req.params;
+
+  //@ts-ignore
+  const userId = req.userId;
+
+   try {
+    const room = await prismaClient.room.delete({
+        where: {
+            slug,
+            adminId: userId
+        }
+    })
+    res.status(200).json({ message: "Room deleted successfully" });
+   } catch (error) {
+    res.status(500).json({ message: "Failed to delete room" });
+   }
+
+})
+
+
+
+
 
 app.get("/chats/:roomId", async (req, res) => {
     try {

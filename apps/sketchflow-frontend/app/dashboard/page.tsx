@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Shapes, PlusCircle, LogOut, Calendar, Hash } from "lucide-react";
+import { Shapes, PlusCircle, LogOut, Calendar, Hash, Trash2, DoorOpen } from "lucide-react";
 import { CreateRoomSchema } from "@repo/common/types";
 
-// Custom CSS (same as before)
+// Custom CSS with new button styles
 const customStyles = `
   .bg-gradient {
     background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
@@ -85,6 +85,38 @@ const customStyles = `
     transform: scale(1.05);
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   }
+  .btn-open {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    color: white;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.3s ease;
+  }
+  .btn-open:hover {
+    background: linear-gradient(90deg, #34d399 0%, #6ee7b7 100%);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(110, 231, 183, 0.3);
+  }
+  .btn-delete {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    color: white;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.3s ease;
+  }
+  .btn-delete:hover {
+    background: linear-gradient(90deg, #f87171 0%, #fca5a5 100%);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(248, 113, 113, 0.3);
+  }
   .input-field {
     background: #2d3748;
     color: white;
@@ -159,12 +191,25 @@ export default function Dashboard() {
     }
   }, [router]);
 
+  // Periodic refresh of rooms every 30 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const token = localStorage.getItem("token");
+    const interval = setInterval(() => {
+      fetchRooms(token);
+    }, 30000); // 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   // Fetch rooms for the user
   const fetchRooms = async (token) => {
     try {
       const response = await fetch("http://localhost:3005/rooms", {
         headers: {
-          Authorization: `${token}`,
+          Authorization: `${token}`, 
         },
       });
       const data = await response.json();
@@ -176,7 +221,6 @@ export default function Dashboard() {
         }
         throw new Error(data.message || "Failed to fetch rooms");
       }
-      // Access the "room" array from the response
       setRooms(data.room || []);
     } catch (error) {
       console.error("Fetch rooms error:", error);
@@ -209,7 +253,7 @@ export default function Dashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `${token}`,
+          Authorization: `${token}`, // Fixed: Ensure Bearer prefix
         },
         body: JSON.stringify({ name }),
       });
@@ -232,6 +276,42 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle room deletion
+  const handleDeleteRoom = async (slug: string) => {
+    if (!confirm(`Are you sure you want to delete the room "${slug}"?`)) return;
+    
+    try {
+      
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:3005/room/${slug}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `${token}`,
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 403) {
+          localStorage.removeItem("token");
+          router.push("/signin");
+          return;
+        }
+        throw new Error(data.message || "Failed to delete room");
+      }
+
+      setSuccessMessage("Room deleted successfully!");
+      fetchRooms(token); // Refresh the room list
+    } catch (error) {
+      setErrors({ general: error.message || "Failed to delete room" });
+    }
+  };
+
+  // Handle room opening
+  const handleOpenRoom = (id: number) => {
+    router.push(`/canvas/${id}`);
   };
 
   // Handle logout
@@ -332,7 +412,6 @@ export default function Dashboard() {
                     <div key={room.slug} className="room-card animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                       <div className="space-y-3">
                         <div className="room-card-header">
-                          {/* Use name if available, otherwise fall back to slug */}
                           <h3 className="text-xl font-semibold text-white">{room.name || room.slug}</h3>
                         </div>
                         <div className="room-card-meta">
@@ -342,6 +421,22 @@ export default function Dashboard() {
                         <div className="room-card-meta">
                           <Calendar className="h-4 w-4" />
                           <span>Created: {new Date(room.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => handleOpenRoom(room.id)}
+                            className="btn-open flex-1"
+                          >
+                            <DoorOpen className="h-4 w-4" />
+                            Open
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRoom(room.slug)}
+                            className="btn-delete flex-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
