@@ -1,476 +1,759 @@
-"use client";
+import axios from 'axios';
+import { HTTP_BACKEND } from '../config';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Shapes, PlusCircle, LogOut, Calendar, Hash, Trash2, DoorOpen } from "lucide-react";
-import { CreateRoomSchema } from "@repo/common/types";
+// Define tool types
+const VALID_TOOLS = ['rect', 'circle', 'line', 'pencil', 'diamond', 'eraser', 'text'] as const;
+type DrawingTool = typeof VALID_TOOLS[number];
+type Theme = 'dark' | 'light';
 
-// Custom CSS with new button styles
-const customStyles = `
-  .bg-gradient {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  }
-  .shadow-glow {
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
-  }
-  .hover-glow:hover {
-    box-shadow: 0 6px 25px rgba(255, 255, 255, 0.15);
-  }
-  .animate-float-subtle {
-    animation: floatSubtle 6s ease-in-out infinite;
-  }
-  @keyframes floatSubtle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-  @keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-  .header {
-    background: rgba(17, 24, 39, 0.9);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  .footer {
-    background: rgba(17, 24, 39, 0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  .btn-primary {
-    background: linear-gradient(90deg, #4b5563 0%, #6b7280 100%);
-    color: white;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-  }
-  .btn-primary:hover {
-    background: linear-gradient(90deg, #6b7280 0%, #9ca3af 100%);
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-  }
-  .btn-primary:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-  }
-  .btn-primary:active {
-    transform: scale(0.95);
-  }
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .btn-outline {
-    border: 2px solid #6b7280;
-    color: white;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    background: transparent;
-    transition: all 0.3s ease;
-  }
-  .btn-outline:hover {
-    background: rgba(107, 114, 128, 0.2);
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-  }
-  .btn-open {
-    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-    color: white;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    transition: all 0.3s ease;
-  }
-  .btn-open:hover {
-    background: linear-gradient(90deg, #34d399 0%, #6ee7b7 100%);
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(110, 231, 183, 0.3);
-  }
-  .btn-delete {
-    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
-    color: white;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    transition: all 0.3s ease;
-  }
-  .btn-delete:hover {
-    background: linear-gradient(90deg, #f87171 0%, #fca5a5 100%);
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(248, 113, 113, 0.3);
-  }
-  .input-field {
-    background: #2d3748;
-    color: white;
-    border: none;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-  }
-  .input-field:focus {
-    outline: none;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    background: #374151;
-  }
-  .input-field::placeholder {
-    color: #a0aec0;
-  }
-  .error-text {
-    color: #f87171;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-  }
-  .success-text {
-    color: #34d399;
-    font-size: 0.875rem;
-    text-align: center;
-    margin-top: 1rem;
-  }
-  .room-card {
-    background: #2d3748;
-    padding: 1.5rem;
-    border-radius: 1rem;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  .room-card:hover {
-    background: #374151;
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.15);
-  }
-  .room-card-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #e5e7eb;
-  }
-  .room-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #9ca3af;
-    font-size: 0.875rem;
-  }
-`;
+type Shape = 
+  | { type: 'rect'; x: number; y: number; width: number; height: number; id?: string; }
+  | { type: 'circle'; centerX: number; centerY: number; radius: number; id?: string; }
+  | { type: 'line'; startX: number; startY: number; endX: number; endY: number; id?: string; }
+  | { type: 'pencil'; points: { x: number; y: number }[]; id?: string; }
+  | { type: 'diamond'; centerX: number; centerY: number; width: number; height: number; id?: string; }
+  | { type: 'text'; x: number; y: number; content: string; fontSize?: number; id?: string; };
 
-export default function Dashboard() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [rooms, setRooms] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+// Interface for draw options
+interface DrawOptions {
+  onShapeAdded?: (shape: Shape) => void;
+  onShapeRemoved?: (shapeId: string) => void;
+  theme?: Theme;
+}
 
-  // Check authentication on mount
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/signin");
-    } else {
-      setIsAuthenticated(true);
-      fetchRooms(token);
-    }
-  }, [router]);
+// Extend Window interface for custom-Window
+interface CustomWindow extends Window {
+  selectedTool?: DrawingTool;
+}
+declare const window: CustomWindow;
 
-  // Periodic refresh of rooms every 30 seconds
-  useEffect(() => {
-    if (!isAuthenticated) return;
+export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, options: DrawOptions = {}) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    const token = localStorage.getItem("token");
-    const interval = setInterval(() => {
-      fetchRooms(token);
-    }, 30000); // 30 seconds
+  // Theme management
+  let currentTheme: Theme = options.theme || 'dark';
+  const themeBgColors = {
+    dark: 'rgba(0, 0, 0, 1)',
+    light: 'rgba(255, 255, 255, 1)'
+  };
+  const themeStrokeColors = {
+    dark: 'rgba(255, 255, 255, 1)',
+    light: 'rgba(0, 0, 0, 1)'
+  };
+  const themeFillColors = {
+    dark: 'rgba(255, 255, 255, 1)',
+    light: 'rgba(0, 0, 0, 1)'
+  };
 
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  // Fetch rooms for the user
-  const fetchRooms = async (token) => {
-    try {
-      const response = await fetch("http://localhost:3005/rooms", {
-        headers: {
-          Authorization: `${token}`, 
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 403) {
-          localStorage.removeItem("token");
-          router.push("/signin");
-          return;
-        }
-        throw new Error(data.message || "Failed to fetch rooms");
+  let existingShapes: Shape[] = [];
+  try {
+    existingShapes = await getExistingDShapes(roomId);
+    // Assign IDs to existing shapes if they don't have them
+    existingShapes = existingShapes.map((shape, index) => {
+      if (!shape.id) {
+        return { ...shape, id: `existing-${index}` };
       }
-      setRooms(data.room || []);
+      return shape;
+    });
+  } catch (error) {
+    console.error('Failed to initialize shapes:', error);
+  }
+
+  // WebSocket handling
+  socket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type === 'chat') {
+        const parsedData = JSON.parse(message.message);
+        
+        if (parsedData.shape) {
+          // Add new shape
+          existingShapes.push(parsedData.shape);
+          if (options.onShapeAdded) {
+            options.onShapeAdded(parsedData.shape);
+          }
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+        } else if (parsedData.eraseId) {
+          // Remove erased shape
+          existingShapes = existingShapes.filter(shape => shape.id !== parsedData.eraseId);
+          if (options.onShapeRemoved) {
+            options.onShapeRemoved(parsedData.eraseId);
+          }
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+        } else if (parsedData.undo) {
+          // Handle undo from other clients
+          if (parsedData.undo.type === 'add') {
+            existingShapes = existingShapes.filter(shape => shape.id !== parsedData.undo.shape.id);
+          } else if (parsedData.undo.type === 'remove' && parsedData.undo.shape) {
+            existingShapes.push(parsedData.undo.shape);
+          }
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+        }
+      }
     } catch (error) {
-      console.error("Fetch rooms error:", error);
-      setErrors({ general: "Failed to load rooms" });
+      console.error('WebSocket message error:', error);
     }
   };
 
-  // Handle room creation
-  const handleCreateRoom = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setErrors({});
-    setSuccessMessage("");
+  socket.onerror = (error) => console.error('WebSocket error:', error);
+  socket.onclose = () => console.log('WebSocket connection closed');
 
-    // Validate with Zod
-    const result = CreateRoomSchema.safeParse({ name });
-    if (!result.success) {
-      const fieldErrors = {};
-      result.error.errors.forEach((err) => {
-        fieldErrors[err.path[0]] = err.message;
-      });
-      setErrors(fieldErrors);
-      setIsLoading(false);
+  // Drawing state
+  let isDrawing = false;
+  let startX = 0;
+  let startY = 0;
+  let pencilPoints: { x: number; y: number }[] = [];
+  let isPanning = false;
+  let panStartX = 0;
+  let panStartY = 0;
+  let offsetX = 0; 
+  let offsetY = 0;
+  let zoom = 1.0; 
+  let textInput: HTMLTextAreaElement | null = null;
+  let isPanningModeActive = false;
+
+  // Function to generate a unique ID for shapes
+  const generateShapeId = () => {
+    return `shape-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  };
+
+  // Function to create text input element
+  const createTextInput = (x: number, y: number) => {
+    // Remove existing text input if any
+    removeTextInput();
+    
+    textInput = document.createElement('textarea');
+    textInput.style.position = 'absolute';
+    textInput.style.left = `${x + offsetX}px`;
+    textInput.style.top = `${y + offsetY}px`;
+    textInput.style.background = 'transparent';
+    textInput.style.color = currentTheme === 'dark' ? 'white' : 'black';
+    textInput.style.border = `1px dashed ${currentTheme === 'dark' ? 'white' : 'black'}`;
+    textInput.style.padding = '4px';
+    textInput.style.minWidth = '100px';
+    textInput.style.minHeight = '30px';
+    textInput.style.resize = 'both';
+    textInput.style.outline = 'none';
+    textInput.style.zIndex = '1000';
+    textInput.style.fontFamily = 'sans-serif';
+    textInput.style.fontSize = '16px';
+    textInput.style.transform = `scale(${zoom})`;
+    textInput.style.transformOrigin = 'top left';
+    
+    document.body.appendChild(textInput);
+    setTimeout(() => textInput?.focus(), 0);
+    
+    // Handle text submission with Enter key (Shift+Enter for new line)
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitText();
+      } else if (e.key === 'Escape') {
+        removeTextInput();
+      }
+    });
+    
+    // Handle blur event to submit text
+    textInput.addEventListener('blur', submitText);
+    
+    return textInput;
+  };
+  
+  // Function to submit text and add it as a shape
+  const submitText = () => {
+    if (textInput && textInput.value.trim()) {
+      const rect = textInput.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      
+      // Calculate position relative to canvas and zoom
+      const x = (rect.left - canvasRect.left - offsetX) / zoom;
+      const y = (rect.top - canvasRect.top - offsetY) / zoom;
+      
+      const shapeId = generateShapeId();
+      const fontSize = parseInt(window.getComputedStyle(textInput).fontSize) / zoom;
+      
+      const shape: Shape = {
+        type: 'text',
+        x,
+        y,
+        content: textInput.value.trim(),
+        fontSize,
+        id: shapeId
+      };
+      
+      existingShapes.push(shape);
+      
+      socket.send(JSON.stringify({
+        type: 'chat',
+        roomId,
+        message: JSON.stringify({ shape })
+      }));
+      
+      if (options.onShapeAdded) {
+        options.onShapeAdded(shape);
+      }
+      
+      removeTextInput();
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+    } else if (textInput) {
+      removeTextInput();
+    }
+  };
+  
+  // Function to remove text input
+  const removeTextInput = () => {
+    if (textInput && textInput.parentNode) {
+      textInput.parentNode.removeChild(textInput);
+      textInput = null;
+    }
+  };
+
+  // Function to find a shape at a specific position
+  const findShapeAtPosition = (x: number, y: number): { shape: Shape, index: number } | null => {
+    // Check in reverse order to find the topmost shape first
+    for (let i = existingShapes.length - 1; i >= 0; i--) {
+      const shape = existingShapes[i];
+      
+      switch (shape.type) {
+        case 'rect':
+          if (x >= shape.x && x <= shape.x + shape.width &&
+              y >= shape.y && y <= shape.y + shape.height) {
+            return { shape, index: i };
+          }
+          break;
+        case 'circle':
+          const distSquared = Math.pow(x - shape.centerX, 2) + Math.pow(y - shape.centerY, 2);
+          if (distSquared <= Math.pow(shape.radius, 2)) {
+            return { shape, index: i };
+          }
+          break;
+        case 'line':
+          // Check if point is near the line (rough approximation)
+          const lineDistThreshold = 5; // Pixels tolerance
+          const dx = shape.endX - shape.startX;
+          const dy = shape.endY - shape.startY;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          
+          if (length === 0) {
+            const distToPoint = Math.sqrt(Math.pow(x - shape.startX, 2) + Math.pow(y - shape.startY, 2));
+            if (distToPoint <= lineDistThreshold) {
+              return { shape, index: i };
+            }
+          } else {
+            const t = ((x - shape.startX) * dx + (y - shape.startY) * dy) / (length * length);
+            if (t >= 0 && t <= 1) {
+              const projX = shape.startX + t * dx;
+              const projY = shape.startY + t * dy;
+              const distToLine = Math.sqrt(Math.pow(x - projX, 2) + Math.pow(y - projY, 2));
+              if (distToLine <= lineDistThreshold / zoom) {
+                return { shape, index: i };
+              }
+            }
+          }
+          break;
+        case 'pencil':
+          // Check if near any segment of the pencil line
+          for (let j = 1; j < shape.points.length; j++) {
+            const p1 = shape.points[j-1];
+            const p2 = shape.points[j];
+            
+            const segmentDx = p2.x - p1.x;
+            const segmentDy = p2.y - p1.y;
+            const segmentLength = Math.sqrt(segmentDx * segmentDx + segmentDy * segmentDy);
+            
+            if (segmentLength === 0) continue;
+            
+            const t = ((x - p1.x) * segmentDx + (y - p1.y) * segmentDy) / (segmentLength * segmentLength);
+            if (t >= 0 && t <= 1) {
+              const projX = p1.x + t * segmentDx;
+              const projY = p1.y + t * segmentDy;
+              const distToSegment = Math.sqrt(Math.pow(x - projX, 2) + Math.pow(y - projY, 2));
+              if (distToSegment <= 5 / zoom) {
+                return { shape, index: i };
+              }
+            }
+          }
+          break;
+        case 'diamond':
+          // Check if point is inside diamond
+          const halfWidth = shape.width / 2;
+          const halfHeight = shape.height / 2;
+          const pointRelX = Math.abs(x - shape.centerX);
+          const pointRelY = Math.abs(y - shape.centerY);
+          
+          if (pointRelX / halfWidth + pointRelY / halfHeight <= 1) {
+            return { shape, index: i };
+          }
+          break;
+        case 'text':
+          // Approximate text bounding box (would need refinement based on font metrics)
+          const textWidth = ctx.measureText(shape.content).width;
+          const textHeight = shape.fontSize || 16;
+          
+          if (x >= shape.x && x <= shape.x + textWidth &&
+              y >= shape.y - textHeight && y <= shape.y) {
+            return { shape, index: i };
+          }
+          break;
+      }
+    }
+    return null;
+  };
+ 
+  const getCanvasPos = (e: MouseEvent) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left - offsetX) / zoom,
+      y: (e.clientY - rect.top - offsetY) / zoom
+    };
+  };
+
+  canvas.addEventListener('mousedown', (e) => {
+    const pos = getCanvasPos(e);
+    startX = pos.x;
+    startY = pos.y;
+
+    if (e.button === 1 || (e.shiftKey && e.button === 0) || isPanningModeActive) { 
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      canvas.style.cursor = 'grabbing';
       return;
     }
 
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3005/room", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`, // Fixed: Ensure Bearer prefix
-        },
-        body: JSON.stringify({ name }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 403) {
-          localStorage.removeItem("token");
-          router.push("/signin");
-          return;
-        }
-        throw new Error(data.message || "Failed to create room");
-      }
-
-      setSuccessMessage("Room created successfully!");
-      setName("");
-      fetchRooms(token); // Refresh the room list
-    } catch (error) {
-      setErrors({ general: error.message || "Failed to create room" });
-    } finally {
-      setIsLoading(false);
+    // Handle text tool click
+    if (window.selectedTool === 'text') {
+      createTextInput(startX * zoom, startY * zoom);
+      return;
     }
-  };
-
-  // Handle room deletion
-  const handleDeleteRoom = async (slug: string) => {
-    if (!confirm(`Are you sure you want to delete the room "${slug}"?`)) return;
     
-    try {
-      
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3005/room/${slug}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `${token}`,
+    isDrawing = true;
+    
+    // Handle eraser tool
+    if (window.selectedTool === 'eraser') {
+      const foundShape = findShapeAtPosition(pos.x, pos.y);
+      if (foundShape) {
+        const { shape } = foundShape;
+        
+        // Keep a reference to the shape for undo function
+        if (options.onShapeRemoved) {
+          options.onShapeRemoved(shape.id || '');
         }
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 403) {
-          localStorage.removeItem("token");
-          router.push("/signin");
-          return;
-        }
-        throw new Error(data.message || "Failed to delete room");
+        
+        // Remove the shape locally
+        existingShapes = existingShapes.filter(s => s.id !== shape.id);
+        
+        // Notify other clients
+        socket.send(JSON.stringify({
+          type: 'chat',
+          roomId,
+          message: JSON.stringify({ eraseId: shape.id })
+        }));
+        
+        clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
       }
-
-      setSuccessMessage("Room deleted successfully!");
-      fetchRooms(token); // Refresh the room list
-    } catch (error) {
-      setErrors({ general: error.message || "Failed to delete room" });
+      isDrawing = false;
+      return;
     }
+    
+    if (window.selectedTool === 'pencil') {
+      pencilPoints = [{ x: startX, y: startY }];
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      const dx = e.clientX - panStartX;
+      const dy = e.clientY - panStartY;
+      offsetX += dx;
+      offsetY += dy;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+      return;
+    }
+
+    const pos = getCanvasPos(e);
+    
+    // Handle eraser hover effect
+    if (window.selectedTool === 'eraser') {
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+      
+      // Draw eraser cursor
+      applyTransform(ctx, offsetX, offsetY, zoom);
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.lineWidth = 2;
+      const eraserSize = 10;
+      ctx.strokeRect(pos.x - eraserSize/2, pos.y - eraserSize/2, eraserSize, eraserSize);
+      ctx.lineWidth = 1;
+      
+      // Highlight shape under cursor
+      const foundShape = findShapeAtPosition(pos.x, pos.y);
+      if (foundShape) {
+        const { shape } = foundShape;
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+        
+        switch (shape.type) {
+          case 'rect':
+            ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+            break;
+          case 'circle':
+            ctx.beginPath();
+            ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            break;
+          case 'line':
+            ctx.beginPath();
+            ctx.moveTo(shape.startX, shape.startY);
+            ctx.lineTo(shape.endX, shape.endY);
+            ctx.stroke();
+            break;
+          case 'pencil':
+            ctx.beginPath();
+            if (shape.points.length > 0) {
+              ctx.moveTo(shape.points[0].x, shape.points[0].y);
+              for (let i = 1; i < shape.points.length; i++) {
+                ctx.lineTo(shape.points[i].x, shape.points[i].y);
+              }
+            }
+            ctx.stroke();
+            break;
+          case 'diamond':
+            ctx.beginPath();
+            const halfWidth = shape.width / 2;
+            const halfHeight = shape.height / 2;
+            ctx.moveTo(shape.centerX, shape.centerY - halfHeight); // Top
+            ctx.lineTo(shape.centerX + halfWidth, shape.centerY); // Right
+            ctx.lineTo(shape.centerX, shape.centerY + halfHeight); // Bottom
+            ctx.lineTo(shape.centerX - halfWidth, shape.centerY); // Left
+            ctx.closePath();
+            ctx.stroke();
+            break;
+          case 'text':
+            // Draw a box around the text
+            const textWidth = ctx.measureText(shape.content).width;
+            const textHeight = shape.fontSize || 16;
+            ctx.strokeRect(shape.x, shape.y - textHeight, textWidth, textHeight);
+            break;
+        }
+      }
+      
+      resetTransform(ctx);
+      return;
+    }
+    
+    if (!isDrawing) return;
+    
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+    
+    // Draw the shape being created
+    applyTransform(ctx, offsetX, offsetY, zoom);
+    ctx.strokeStyle = themeStrokeColors[currentTheme];
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    
+    switch (window.selectedTool) {
+      case 'rect':
+        const width = pos.x - startX;
+        const height = pos.y - startY;
+        ctx.strokeRect(startX, startY, width, height);
+        ctx.fillRect(startX, startY, width, height);
+        break;
+      case 'circle':
+        const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+        ctx.beginPath();
+        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fill();
+        break;
+      case 'line':
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        break;
+      case 'pencil':
+        pencilPoints.push({ x: pos.x, y: pos.y });
+        
+        ctx.beginPath();
+        if (pencilPoints.length > 0) {
+          ctx.moveTo(pencilPoints[0].x, pencilPoints[0].y);
+          for (let i = 1; i < pencilPoints.length; i++) {
+            ctx.lineTo(pencilPoints[i].x, pencilPoints[i].y);
+          }
+        }
+        ctx.stroke();
+        break;
+      case 'diamond':
+        const diamondWidth = Math.abs(pos.x - startX) * 2;
+        const diamondHeight = Math.abs(pos.y - startY) * 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY - diamondHeight/2);
+        ctx.lineTo(startX + diamondWidth/2, startY);
+        ctx.lineTo(startX, startY + diamondHeight/2);
+        ctx.lineTo(startX - diamondWidth/2, startY);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+        break;
+    }
+    
+    resetTransform(ctx);
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (isPanning) {
+      isPanning = false;
+      canvas.style.cursor = 'default';
+      return;
+    }
+    
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    const pos = getCanvasPos(e);
+    
+    if (window.selectedTool && window.selectedTool !== 'eraser') {
+      const shapeId = generateShapeId();
+      let shape: Shape | null = null;
+      
+      switch (window.selectedTool) {
+        case 'rect':
+          shape = {
+            type: 'rect',
+            x: startX,
+            y: startY,
+            width: pos.x - startX,
+            height: pos.y - startY,
+            id: shapeId
+          };
+          break;
+        case 'circle':
+          shape = {
+            type: 'circle',
+            centerX: startX,
+            centerY: startY,
+            radius: Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2)),
+            id: shapeId
+          };
+          break;
+        case 'line':
+          shape = {
+            type: 'line',
+            startX,
+            startY,
+            endX: pos.x,
+            endY: pos.y,
+            id: shapeId
+          };
+          break;
+        case 'pencil':
+          if (pencilPoints.length > 1) {
+            shape = {
+              type: 'pencil',
+              points: pencilPoints,
+              id: shapeId
+            };
+          }
+          break;
+        case 'diamond':
+          shape = {
+            type: 'diamond',
+            centerX: startX,
+            centerY: startY,
+            width: Math.abs(pos.x - startX) * 2,
+            height: Math.abs(pos.y - startY) * 2,
+            id: shapeId
+          };
+          break;
+      }
+      
+      if (shape) {
+        existingShapes.push(shape);
+        
+        socket.send(JSON.stringify({
+          type: 'chat',
+          roomId,
+          message: JSON.stringify({ shape })
+        }));
+        
+        if (options.onShapeAdded) {
+          options.onShapeAdded(shape);
+        }
+        
+        clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+      }
+    }
+  });
+  
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    
+    // Get mouse position before zoom
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Calculate position in canvas space (before zoom change)
+    const canvasX = (mouseX - offsetX) / zoom;
+    const canvasY = (mouseY - offsetY) / zoom;
+    
+    // Adjust zoom level based on wheel direction
+    const zoomDelta = e.deltaY < 0 ? 1.1 : 0.9;
+    zoom *= zoomDelta;
+    
+    // Limit zoom range
+    zoom = Math.max(0.1, Math.min(zoom, 10));
+    
+    // Adjust offset to keep mouse position fixed
+    offsetX = mouseX - canvasX * zoom;
+    offsetY = mouseY - canvasY * zoom;
+    
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+  });
+
+  // Function to apply transform
+  const applyTransform = (ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number) => {
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(zoom, zoom);
+  };
+  
+  // Function to reset transform
+  const resetTransform = (ctx: CanvasRenderingContext2D) => {
+    ctx.restore();
+  };
+  
+  // Function to clear canvas and redraw all shapes
+  const clearCanvas = (
+    shapes: Shape[], 
+    canvas: HTMLCanvasElement, 
+    ctx: CanvasRenderingContext2D, 
+    offsetX: number, 
+    offsetY: number, 
+    zoom: number,
+    theme: Theme
+  ) => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Fill background based on theme
+    ctx.fillStyle = themeBgColors[theme];
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Apply transformation for all drawing operations
+    applyTransform(ctx, offsetX, offsetY, zoom);
+    
+    ctx.strokeStyle = themeStrokeColors[theme];
+    ctx.fillStyle = themeFillColors[theme];
+    
+    // Draw all shapes
+    shapes.forEach(shape => {
+      switch (shape.type) {
+        case 'rect':
+          ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+          break;
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.fill();
+          break;
+        case 'line':
+          ctx.beginPath();
+          ctx.moveTo(shape.startX, shape.startY);
+          ctx.lineTo(shape.endX, shape.endY);
+          ctx.stroke();
+          break;
+        case 'pencil':
+          ctx.beginPath();
+          if (shape.points.length > 0) {
+            ctx.moveTo(shape.points[0].x, shape.points[0].y);
+            for (let i = 1; i < shape.points.length; i++) {
+              ctx.lineTo(shape.points[i].x, shape.points[i].y);
+            }
+          }
+          ctx.stroke();
+          break;
+        case 'diamond':
+          ctx.beginPath();
+          const halfWidth = shape.width / 2;
+          const halfHeight = shape.height / 2;
+          ctx.moveTo(shape.centerX, shape.centerY - halfHeight);
+          ctx.lineTo(shape.centerX + halfWidth, shape.centerY);
+          ctx.lineTo(shape.centerX, shape.centerY + halfHeight);
+          ctx.lineTo(shape.centerX - halfWidth, shape.centerY);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.fill();
+          break;
+        case 'text':
+          const fontSize = shape.fontSize || 16;
+          ctx.font = `${fontSize}px sans-serif`;
+          ctx.fillStyle = themeStrokeColors[theme];
+          ctx.fillText(shape.content, shape.x, shape.y);
+          break;
+      }
+    });
+    
+    // Reset transformation
+    resetTransform(ctx);
   };
 
-  // Handle room opening
-  const handleOpenRoom = (id: number) => {
-    router.push(`/canvas/${id}`);
+  // Toggle theme function
+  const toggleTheme = () => {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+    return currentTheme;
   };
 
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/signin");
+  // Toggle panning mode function
+  const togglePanningMode = () => {
+    isPanningModeActive = !isPanningModeActive;
+    canvas.style.cursor = isPanningModeActive ? 'grab' : 'default';
+    return isPanningModeActive;
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-300"></div>
-      </div>
-    );
+  // Set zoom level function
+  const setZoomLevel = (level: number) => {
+    zoom = Math.max(0.1, Math.min(level, 10));
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+    return zoom;
+  };
+
+  // Reset view function
+  const resetView = () => {
+    offsetX = 0;
+    offsetY = 0;
+    zoom = 1.0;
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
+  };
+
+  // Function to get existing shapes from backend
+  async function getExistingDShapes(roomId: string): Promise<Shape[]> {
+    try {
+      const response = await axios.get(`${HTTP_BACKEND}/api/rooms/${roomId}/shapes`);
+      return response.data.shapes || [];
+    } catch (error) {
+      console.error('Failed to fetch shapes:', error);
+      return [];
+    }
   }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gradient text-white">
-      <style>{customStyles}</style>
+  // Initial draw
+  clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, currentTheme);
 
-      {/* Background Decorative Elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gray-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-float-subtle opacity-30"></div>
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-gray-400/20 rounded-full blur-3xl translate-x-1/2 animate-float-subtle opacity-30" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-gray-300/20 rounded-full blur-3xl animate-float-subtle opacity-30" style={{ animationDelay: "2s" }}></div>
-      </div>
-
-      {/* Header */}
-      <header className="header px-4 lg:px-6 h-16 flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gray-500 flex items-center justify-center text-white shadow-glow hover-glow transition-all">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5v-2l-10 5-10-5v2zM2 12l10 5 10-5v-2l-10 5-10-5v2z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-white">SketchFlow</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <button onClick={handleLogout} className="btn-outline flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="container px-4 py-12 mx-auto max-w-4xl">
-          <div className="space-y-12">
-            {/* Dashboard Header */}
-            <div className="text-center space-y-4 animate-fade-in">
-              <h1 className="text-5xl font-extrabold tracking-tight text-white">
-                Your Dashboard
-              </h1>
-              <p className="text-gray-300 text-lg">
-                Create new rooms and manage your existing ones with ease.
-              </p>
-            </div>
-
-            {/* Create Room Form */}
-            <div className="p-8 bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-glow hover-glow transition-all duration-300 animate-fade-in">
-              <form onSubmit={handleCreateRoom} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                    Room Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Enter a name for your room"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full input-field"
-                  />
-                  {errors.name && <p className="error-text">{errors.name}</p>}
-                </div>
-
-                <button type="submit" disabled={isLoading} className="w-full btn-primary">
-                  <PlusCircle className="h-5 w-5" />
-                  {isLoading ? "Creating..." : "Create Room"}
-                </button>
-
-                {errors.general && <p className="error-text">{errors.general}</p>}
-                {successMessage && <p className="success-text">{successMessage}</p>}
-              </form>
-            </div>
-
-            {/* List of Rooms */}
-            <div className="space-y-6 animate-fade-in">
-              <h2 className="text-3xl font-bold text-white">Your Rooms</h2>
-              {rooms.length === 0 ? (
-                <div className="text-center py-12 bg-gray-900/50 rounded-2xl">
-                  <p className="text-gray-400 text-lg">No rooms created yet. Start by creating one above!</p>
-                </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {rooms.map((room, index) => (
-                    <div key={room.slug} className="room-card animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                      <div className="space-y-3">
-                        <div className="room-card-header">
-                          <h3 className="text-xl font-semibold text-white">{room.name || room.slug}</h3>
-                        </div>
-                        <div className="room-card-meta">
-                          <Hash className="h-4 w-4" />
-                          <span>Slug: {room.slug}</span>
-                        </div>
-                        <div className="room-card-meta">
-                          <Calendar className="h-4 w-4" />
-                          <span>Created: {new Date(room.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => handleOpenRoom(room.id)}
-                            className="btn-open flex-1"
-                          >
-                            <DoorOpen className="h-4 w-4" />
-                            Open
-                          </button>
-                          <button
-                            onClick={() => handleDeleteRoom(room.slug)}
-                            className="btn-delete flex-1"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="footer flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gray-500 flex items-center justify-center text-white shadow-glow hover-glow transition-all">
-            <Shapes className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-bold text-white">SketchFlow</span>
-        </div>
-        <p className="text-xs text-gray-400 sm:ml-auto">
-          © {new Date().getFullYear()} SketchFlow. All rights reserved.
-        </p>
-        <nav className="flex gap-4 sm:gap-6">
-          <Link href="/terms" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
-            Terms
-          </Link>
-          <Link href="/privacy" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
-            Privacy
-          </Link>
-          <Link href="/contact" className="text-xs text-gray-400 hover:text-white transition-colors duration-300">
-            Contact
-          </Link>
-        </nav>
-      </footer>
-    </div>
-  );
+  // Export public functions
+  return {
+    toggleTheme,
+    togglePanningMode,
+    setZoomLevel,
+    resetView,
+    getCurrentShapes: () => existingShapes,
+    getCurrentTheme: () => currentTheme
+  };
 }
