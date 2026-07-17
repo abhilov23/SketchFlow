@@ -101,10 +101,11 @@ export default function Dashboard() {
   }
 
   const handleDeleteRoom = async (slug: string) => {
-    if (!confirm(`Delete "${slug}"? This cannot be undone.`)) return
+    setErrors({})
+    setSuccessMessage("")
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`http://localhost:3005/room/${slug}`, {
+      const response = await fetch(`http://localhost:3005/room/${encodeURIComponent(slug)}`, {
         method: "DELETE",
         headers: { Authorization: `${token}` },
       })
@@ -126,7 +127,7 @@ export default function Dashboard() {
 
   const handleCopySlug = async (slug: string) => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/canvas/${slug}`)
+      await navigator.clipboard.writeText(`${window.location.origin}/canvas/${encodeURIComponent(slug)}`)
       setCopiedSlug(slug)
       setTimeout(() => setCopiedSlug(null), 2000)
     } catch {

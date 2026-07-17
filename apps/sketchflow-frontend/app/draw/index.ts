@@ -26,6 +26,7 @@ export async function initDraw(
   options?: {
     onShapeAdded?: (shape: Shape) => void;
     onShapeRemoved?: (shapeId: string) => void;
+    onZoomChange?: (zoom: number) => void;
     theme?: string;
   }
 ) {
@@ -47,6 +48,9 @@ export async function initDraw(
   }
 
   // WebSocket handling
+  socket.onmessage = null;
+  socket.onerror = null;
+  socket.onclose = null;
   socket.onmessage = (event) => {
     try {
       const message = JSON.parse(event.data);
@@ -55,9 +59,11 @@ export async function initDraw(
         
         if (parsedData.shape) {
           const newShape = parsedData.shape as Shape;
-          existingShapes.push(newShape);
+          const alreadyExists = existingShapes.some(s => s.id === newShape.id);
+          if (!alreadyExists) {
+            existingShapes.push(newShape);
+          }
           clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-          options?.onShapeAdded?.(newShape);
         } else if (parsedData.eraseId) {
           existingShapes = existingShapes.filter(shape => shape.id !== parsedData.eraseId);
           clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
@@ -85,8 +91,26 @@ export async function initDraw(
   let zoom = 1.0; 
   let textInput: HTMLTextAreaElement | null = null;
   let panModeEnabled = false;
+  let spaceHeld = false;
   const undoStack: Array<{ type: 'add' | 'remove', shape?: Shape, erasedShape?: Shape }> = [];
   let canvasTheme = options?.theme || 'dark';
+
+  // Space key handler for pan
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.code === 'Space' && textInput === null) {
+      e.preventDefault();
+      spaceHeld = true;
+      panModeEnabled = true;
+    }
+  };
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.code === 'Space') {
+      spaceHeld = false;
+      panModeEnabled = false;
+    }
+  };
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
 
   // Function to generate a unique ID for shapes
   const generateShapeId = () => {
@@ -280,7 +304,7 @@ export async function initDraw(
     };
   };
 
-  canvas.addEventListener('mousedown', (e) => {
+  const handleMouseDown = (e: MouseEvent) => {
     const pos = getCanvasPos(e);
     startX = pos.x;
     startY = pos.y;
@@ -316,16 +340,18 @@ export async function initDraw(
         }));
         clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
       }
-      isDrawing = false;
-      return;
-    }
-    
-    if (window.selectedTool === 'pencil') {
-      pencilPoints = [{ x: startX, y: startY }];
-    }
-  });
+    isDrawing = false;
+    return;
+  }
+  
+  if (window.selectedTool === 'pencil') {
+    pencilPoints = [{ x: startX, y: startY }];
+  }
+};
 
-  canvas.addEventListener('mousemove', (e) => {
+canvas.addEventListener('mousedown', handleMouseDown);
+
+  const handleMouseMove = (e: MouseEvent) => {
     if (isPanning) {
       const dx = e.clientX - panStartX;
       const dy = e.clientY - panStartY;
@@ -415,8 +441,9 @@ export async function initDraw(
 
     // Preview drawing
     clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+    ctx.strokeStyle = canvasTheme === 'light' ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
     applyTransform(ctx, offsetX, offsetY, zoom);
+    ctx.lineWidth = 1 / zoom;
 
     switch (selectedTool) {
       case 'rect':
@@ -438,6 +465,8 @@ export async function initDraw(
         break;
       case 'pencil':
         pencilPoints.push({ x: pos.x, y: pos.y });
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.beginPath();
         ctx.moveTo(pencilPoints[0].x, pencilPoints[0].y);
         for (let i = 1; i < pencilPoints.length; i++) {
@@ -457,9 +486,10 @@ export async function initDraw(
         ctx.stroke();
         break;
     }
-  });
+  };
+  canvas.addEventListener('mousemove', handleMouseMove);
 
-  canvas.addEventListener('mouseup', (e) => {
+  const handleMouseUp = (e: MouseEvent) => {
     if (isPanning) {
       isPanning = false;
       return;
@@ -523,10 +553,10 @@ export async function initDraw(
       message: JSON.stringify({ shape })
     }));
     clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-  });
+  };
+  canvas.addEventListener('mouseup', handleMouseUp);
 
-  
-  canvas.addEventListener('mouseleave', () => {
+  const handleMouseLeave = () => {
     if (isDrawing && window.selectedTool === 'pencil') {
       isDrawing = false;
       const shapeId = generateShapeId();
@@ -541,10 +571,10 @@ export async function initDraw(
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
     isPanning = false;
-  });
+  };
+  canvas.addEventListener('mouseleave', handleMouseLeave);
 
-  // Zoom handling
-  canvas.addEventListener('wheel', (e) => {
+  const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     if (e.ctrlKey) {
       const zoomFactor = 0.1;
@@ -554,6 +584,9 @@ export async function initDraw(
       const oldZoom = zoom;
       zoom += e.deltaY < 0 ? zoomFactor : -zoomFactor;
       zoom = Math.max(0.1, Math.min(zoom, 5.0)); 
+
+      // Notify parent of zoom change
+      options?.onZoomChange?.(zoom);
 
       // Adjust offset to zoom towards mouse
       offsetX = mouseX - (mouseX - offsetX) * (zoom / oldZoom);
@@ -584,7 +617,8 @@ export async function initDraw(
       
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
-  });
+  };
+  canvas.addEventListener('wheel', handleWheel, { passive: false });
 
   // Cleanup event listener when component unmounts
   const handleBeforeUnload = () => {
@@ -598,7 +632,17 @@ export async function initDraw(
   return {
     redraw: () => clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme),
     cleanup: () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('wheel', handleWheel);
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
       removeTextInput();
     },
     setPanningMode: (active: boolean) => { panModeEnabled = active; },
@@ -625,6 +669,26 @@ export async function initDraw(
     setTheme: (newTheme: string) => {
       canvasTheme = newTheme;
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+    },
+    changeZoom: (delta: number) => {
+      const oldZoom = zoom;
+      zoom = Math.max(0.1, Math.min(zoom + delta, 5.0));
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = rect.width / 2;
+      const mouseY = rect.height / 2;
+      offsetX = mouseX - (mouseX - offsetX) * (zoom / oldZoom);
+      offsetY = mouseY - (mouseY - offsetY) * (zoom / oldZoom);
+      options?.onZoomChange?.(zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+      return zoom;
+    },
+    exportPNG: () => {
+      const link = document.createElement('a');
+      link.download = `sketchflow-${roomId}.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 }
@@ -645,6 +709,7 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
 
   ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
   applyTransform(ctx, offsetX, offsetY, zoom);
+  ctx.lineWidth = 1 / zoom;
   ctx.font = '16px sans-serif'; // Set default font
 
   existingShapes.forEach((shape) => {
@@ -665,6 +730,8 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
         break;
       case 'pencil':
         if (shape.points.length > 1) {
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.beginPath();
           ctx.moveTo(shape.points[0].x, shape.points[0].y);
           for (let i = 1; i < shape.points.length; i++) {

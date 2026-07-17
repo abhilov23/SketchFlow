@@ -19,20 +19,20 @@ const features = [
   {
     icon: <Share2 className="h-7 w-7" />,
     title: "Easy Sharing",
-    desc: "Share your creations with a simple link. Control access and permissions for your boards.",
-    highlights: ["Link sharing", "Access control", "No sign-up required"],
+    desc: "Share your board with a simple link. Anyone with the link can view and collaborate.",
+    highlights: ["Copy board link", "Real-time collaboration", "Instant access"],
   },
   {
     icon: <Download className="h-7 w-7" />,
-    title: "Export Options",
-    desc: "Export your drawings in multiple formats with just a few clicks. Perfect for presentations and documentation.",
-    highlights: ["PNG export", "SVG export", "PDF export"],
+    title: "PNG Export",
+    desc: "Export your canvas as a PNG image with a single click. Perfect for presentations and documentation.",
+    highlights: ["One-click export", "High resolution", "Ready to share"],
   },
   {
     icon: <Shapes className="h-7 w-7" />,
-    title: "Rich Shape Library",
-    desc: "Access a wide range of shapes, templates, and components. Drag and drop to build complex diagrams fast.",
-    highlights: ["Pre-built shapes", "Templates", "Drag & drop"],
+    title: "Drawing Tools",
+    desc: "A focused set of essential tools for freehand sketching, shapes, text, and annotations.",
+    highlights: ["Pencil & eraser", "Line, rect, circle, diamond", "Text tool"],
   },
   {
     icon: <Zap className="h-7 w-7" />,
@@ -64,7 +64,7 @@ const steps = [
   {
     number: "04",
     title: "Share your creation",
-    desc: "Export your finished board as PNG, SVG, or PDF, or share a direct link so anyone can view it instantly.",
+    desc: "Export your finished board as a PNG image, or share a direct link so anyone can view it instantly.",
     icon: <Sparkles className="h-6 w-6" />,
   },
 ]
@@ -165,68 +165,113 @@ export default function LandingPage() {
               </div>
               <svg viewBox="0 0 800 480" className="block w-full" role="img" aria-label="SketchFlow whiteboard preview">
                 <rect width="800" height="480" fill="oklch(0.145 0 0)" />
-                <rect x="0" y="0" width="800" height="480" fill="none" />
-                <g transform="translate(0, 0)">
-                  <rect x="120" y="60" width="200" height="140" rx="8" fill="none" stroke="oklch(0.627 0.265 303.9 / 0.6)" strokeWidth="2.5" />
-                  <rect x="120" y="60" width="200" height="140" rx="8" fill="oklch(0.627 0.265 303.9 / 0.08)" />
-                  <text x="160" y="110" fill="oklch(0.627 0.265 303.9)" fontSize="14" fontFamily="sans-serif" fontWeight="600">Q3 Roadmap</text>
-                  <text x="160" y="135" fill="oklch(0.627 0.265 303.9 / 0.7)" fontSize="11" fontFamily="sans-serif">- Auth module</text>
-                  <text x="160" y="152" fill="oklch(0.627 0.265 303.9 / 0.7)" fontSize="11" fontFamily="sans-serif">- API integration</text>
-                  <text x="160" y="169" fill="oklch(0.627 0.265 303.9 / 0.7)" fontSize="11" fontFamily="sans-serif">- Dashboard</text>
-                  <text x="160" y="186" fill="oklch(0.627 0.265 303.9 / 0.7)" fontSize="11" fontFamily="sans-serif">- Deployment</text>
-                  <rect x="370" y="60" width="100" height="100" rx="6" fill="oklch(0.546 0.245 262.881 / 0.12)" stroke="oklch(0.546 0.245 262.881 / 0.5)" strokeWidth="2" />
-                  <text x="390" y="105" fill="oklch(0.546 0.245 262.881)" fontSize="12" fontFamily="sans-serif" fontWeight="600">Wireframe</text>
-                  <text x="390" y="125" fill="oklch(0.546 0.245 262.881 / 0.6)" fontSize="10" fontFamily="sans-serif">v2.1</text>
-                  <circle cx="520" cy="110" r="40" fill="none" stroke="oklch(0.723 0.219 149.579 / 0.5)" strokeWidth="2.5" />
-                  <circle cx="520" cy="110" r="40" fill="oklch(0.723 0.219 149.579 / 0.1)" />
-                  <text x="505" y="116" fill="oklch(0.723 0.219 149.579)" fontSize="14" fontFamily="sans-serif" fontWeight="600">88%</text>
-                  <text x="650" y="90" fill="none" stroke="oklch(0.715 0.143 25.228 / 0.5)" strokeWidth="2" strokeDasharray="6 4">
-                    <tspan>Arrow</tspan>
-                    <tspan x="650" y="130">flow</tspan>
-                  </text>
-                  <line x1="320" y1="130" x2="370" y2="110" stroke="oklch(0.715 0.143 25.228 / 0.4)" strokeWidth="1.5" strokeDasharray="5 3" />
-                  <line x1="470" y1="110" x2="480" y2="110" stroke="oklch(0.715 0.143 25.228 / 0.4)" strokeWidth="1.5" />
-                  <polygon points="485,105 485,115 495,110" fill="oklch(0.715 0.143 25.228 / 0.4)" />
-                  <line x1="520" y1="150" x2="520" y2="220" stroke="oklch(0.715 0.143 25.228 / 0.3)" strokeWidth="1.5" strokeDasharray="4 3" />
-                  <rect x="180" y="260" width="500" height="160" rx="12" fill="oklch(0.627 0.265 303.9 / 0.05)" stroke="oklch(0.627 0.265 303.9 / 0.25)" strokeWidth="1.5" strokeDasharray="6 4" />
-                  <text x="210" y="295" fill="oklch(0.723 0.219 149.579)" fontSize="13" fontFamily="sans-serif" fontWeight="600">System Architecture</text>
-                  <rect x="220" y="310" width="120" height="40" rx="6" fill="oklch(0.546 0.245 262.881 / 0.15)" stroke="oklch(0.546 0.245 262.881 / 0.4)" strokeWidth="1.5" />
-                  <text x="235" y="335" fill="oklch(0.546 0.245 262.881)" fontSize="11" fontFamily="sans-serif">Frontend</text>
-                  <line x1="340" y1="330" x2="370" y2="330" stroke="oklch(0.715 0.143 25.228 / 0.4)" strokeWidth="1.5" />
-                  <polygon points="373,326 373,334 381,330" fill="oklch(0.715 0.143 25.228 / 0.4)" />
-                  <rect x="385" y="310" width="120" height="40" rx="6" fill="oklch(0.627 0.265 303.9 / 0.15)" stroke="oklch(0.627 0.265 303.9 / 0.4)" strokeWidth="1.5" />
-                  <text x="410" y="335" fill="oklch(0.627 0.265 303.9)" fontSize="11" fontFamily="sans-serif">API Gateway</text>
-                  <line x1="505" y1="330" x2="535" y2="330" stroke="oklch(0.715 0.143 25.228 / 0.4)" strokeWidth="1.5" />
-                  <polygon points="538,326 538,334 546,330" fill="oklch(0.715 0.143 25.228 / 0.4)" />
-                  <rect x="550" y="310" width="120" height="40" rx="6" fill="oklch(0.723 0.219 149.579 / 0.15)" stroke="oklch(0.723 0.219 149.579 / 0.4)" strokeWidth="1.5" />
-                  <text x="570" y="335" fill="oklch(0.723 0.219 149.579)" fontSize="11" fontFamily="sans-serif">Database</text>
-                  <rect x="50" y="420" width="60" height="22" rx="4" fill="oklch(0.723 0.219 149.579 / 0.12)" />
-                  <text x="56" y="434" fill="oklch(0.723 0.219 149.579)" fontSize="9" fontFamily="sans-serif">pencil</text>
-                  <rect x="120" y="420" width="60" height="22" rx="4" fill="oklch(0.546 0.245 262.881 / 0.12)" />
-                  <text x="126" y="434" fill="oklch(0.546 0.245 262.881)" fontSize="9" fontFamily="sans-serif">rect</text>
-                  <rect x="190" y="420" width="60" height="22" rx="4" fill="oklch(0.627 0.265 303.9 / 0.12)" />
-                  <text x="196" y="434" fill="oklch(0.627 0.265 303.9)" fontSize="9" fontFamily="sans-serif">text</text>
-                  <rect x="260" y="420" width="60" height="22" rx="4" fill="oklch(0.715 0.143 25.228 / 0.12)" />
-                  <text x="266" y="434" fill="oklch(0.715 0.143 25.228)" fontSize="9" fontFamily="sans-serif">eraser</text>
-                  <g transform="translate(670, 56)">
-                    <rect x="0" y="0" width="28" height="28" rx="6" fill="oklch(0.627 0.265 303.9 / 0.12)" stroke="oklch(0.627 0.265 303.9 / 0.3)" strokeWidth="1" />
-                    <line x1="7" y1="14" x2="21" y2="14" stroke="oklch(0.627 0.265 303.9)" strokeWidth="1.5" />
-                    <line x1="14" y1="7" x2="14" y2="21" stroke="oklch(0.627 0.265 303.9)" strokeWidth="1.5" />
+                <g>
+                  <rect x="50" y="50" width="220" height="150" rx="10" fill="oklch(0.627 0.265 303.9 / 0.08)" stroke="oklch(0.627 0.265 303.9 / 0.5)" strokeWidth="2" />
+                  <circle cx="75" cy="75" r="16" fill="oklch(0.627 0.265 303.9 / 0.2)" />
+                  <text x="75" y="80" fill="oklch(0.627 0.265 303.9)" fontSize="14" fontFamily="sans-serif" textAnchor="middle" fontWeight="700">B</text>
+                  <text x="100" y="80" fill="oklch(0.627 0.265 303.9)" fontSize="14" fontFamily="sans-serif" fontWeight="700">Brainstorm: Homepage</text>
+                  <circle cx="75" cy="115" r="10" fill="oklch(0.546 0.245 262.881 / 0.2)" />
+                  <text x="92" y="119" fill="oklch(0.546 0.245 262.881 / 0.9)" fontSize="12" fontFamily="sans-serif">Hero animation ideas</text>
+                  <circle cx="75" cy="140" r="10" fill="oklch(0.723 0.219 149.579 / 0.2)" />
+                  <text x="92" y="144" fill="oklch(0.723 0.219 149.579 / 0.9)" fontSize="12" fontFamily="sans-serif">Color palette options</text>
+                  <circle cx="75" cy="165" r="10" fill="oklch(0.715 0.143 25.228 / 0.2)" />
+                  <text x="92" y="169" fill="oklch(0.715 0.143 25.228 / 0.9)" fontSize="12" fontFamily="sans-serif">Layout wireframes</text>
+                  <line x1="130" y1="100" x2="290" y2="100" stroke="oklch(0.715 0.143 25.228 / 0.3)" strokeWidth="1.5" strokeDasharray="5 3" />
+
+                  <rect x="310" y="50" width="200" height="150" rx="10" fill="oklch(0.723 0.219 149.579 / 0.06)" stroke="oklch(0.723 0.219 149.579 / 0.4)" strokeWidth="2" />
+                  <text x="330" y="80" fill="oklch(0.723 0.219 149.579)" fontSize="13" fontFamily="sans-serif" fontWeight="700">User Story</text>
+                  <rect x="330" y="92" width="160" height="2" rx="1" fill="oklch(0.723 0.219 149.579 / 0.2)" />
+                  <text x="330" y="112" fill="oklch(0.723 0.219 149.579 / 0.85)" fontSize="11" fontFamily="sans-serif">As a designer, I want</text>
+                  <text x="330" y="128" fill="oklch(0.723 0.219 149.579 / 0.85)" fontSize="11" fontFamily="sans-serif">real-time collaboration</text>
+                  <text x="330" y="144" fill="oklch(0.723 0.219 149.579 / 0.85)" fontSize="11" fontFamily="sans-serif">so I can co-create</text>
+                  <text x="330" y="160" fill="oklch(0.723 0.219 149.579 / 0.85)" fontSize="11" fontFamily="sans-serif">with my team.</text>
+                  <rect x="330" y="174" width="50" height="18" rx="4" fill="oklch(0.723 0.219 149.579 / 0.15)" />
+                  <text x="338" y="186" fill="oklch(0.723 0.219 149.579 / 0.8)" fontSize="9" fontFamily="sans-serif">FEATURE</text>
+
+                  <rect x="550" y="50" width="200" height="150" rx="10" fill="oklch(0.546 0.245 262.881 / 0.07)" stroke="oklch(0.546 0.245 262.881 / 0.4)" strokeWidth="2" />
+                  <text x="570" y="80" fill="oklch(0.546 0.245 262.881)" fontSize="13" fontFamily="sans-serif" fontWeight="700">Tasks</text>
+                  <rect x="570" y="92" width="160" height="2" rx="1" fill="oklch(0.546 0.245 262.881 / 0.2)" />
+                  <rect x="570" y="104" width="14" height="14" rx="3" fill="oklch(0.546 0.245 262.881 / 0.15)" stroke="oklch(0.546 0.245 262.881 / 0.4)" strokeWidth="1.5" />
+                  <text x="590" y="116" fill="oklch(0.546 0.245 262.881 / 0.85)" fontSize="11" fontFamily="sans-serif">Design system</text>
+                  <rect x="570" y="124" width="14" height="14" rx="3" fill="oklch(0.546 0.245 262.881 / 0.15)" stroke="oklch(0.546 0.245 262.881 / 0.4)" strokeWidth="1.5" />
+                  <text x="590" y="136" fill="oklch(0.546 0.245 262.881 / 0.85)" fontSize="11" fontFamily="sans-serif">API integration</text>
+                  <rect x="570" y="144" width="14" height="14" rx="3" fill="oklch(0.627 0.265 303.9 / 0.25)" stroke="oklch(0.627 0.265 303.9 / 0.5)" strokeWidth="1.5" />
+                  <text x="574" y="155" fill="oklch(0.627 0.265 303.9)" fontSize="10" fontFamily="sans-serif" textAnchor="middle" fontWeight="700">&#10003;</text>
+                  <text x="590" y="156" fill="oklch(0.546 0.245 262.881 / 0.85)" fontSize="11" fontFamily="sans-serif">Auth module</text>
+                  <line x1="530" y1="125" x2="545" y2="125" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="548,121 548,129 556,125" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+
+                  <rect x="50" y="240" width="480" height="200" rx="12" fill="oklch(0.627 0.265 303.9 / 0.04)" stroke="oklch(0.627 0.265 303.9 / 0.2)" strokeWidth="1.5" strokeDasharray="6 4" />
+                  <text x="70" y="270" fill="oklch(0.627 0.265 303.9 / 0.8)" fontSize="12" fontFamily="sans-serif" fontWeight="600">User Flow</text>
+                  <rect x="70" y="285" width="90" height="34" rx="6" fill="oklch(0.546 0.245 262.881 / 0.15)" stroke="oklch(0.546 0.245 262.881 / 0.4)" strokeWidth="1.5" />
+                  <text x="82" y="306" fill="oklch(0.546 0.245 262.881 / 0.9)" fontSize="10" fontFamily="sans-serif">Open App</text>
+                  <line x1="160" y1="302" x2="180" y2="302" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="183,298 183,306 191,302" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+                  <rect x="195" y="285" width="90" height="34" rx="6" fill="oklch(0.627 0.265 303.9 / 0.15)" stroke="oklch(0.627 0.265 303.9 / 0.4)" strokeWidth="1.5" />
+                  <text x="212" y="306" fill="oklch(0.627 0.265 303.9 / 0.9)" fontSize="10" fontFamily="sans-serif">Sign In</text>
+                  <line x1="285" y1="302" x2="305" y2="302" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="308,298 308,306 316,302" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+                  <rect x="320" y="285" width="90" height="34" rx="6" fill="oklch(0.723 0.219 149.579 / 0.15)" stroke="oklch(0.723 0.219 149.579 / 0.4)" strokeWidth="1.5" />
+                  <text x="337" y="306" fill="oklch(0.723 0.219 149.579 / 0.9)" fontSize="10" fontFamily="sans-serif">New Board</text>
+                  <line x1="410" y1="302" x2="430" y2="302" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="433,298 433,306 441,302" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+                  <rect x="445" y="285" width="70" height="34" rx="6" fill="oklch(0.715 0.143 25.228 / 0.15)" stroke="oklch(0.715 0.143 25.228 / 0.4)" strokeWidth="1.5" />
+                  <text x="459" y="306" fill="oklch(0.715 0.143 25.228 / 0.9)" fontSize="10" fontFamily="sans-serif">Draw</text>
+
+                  <rect x="70" y="340" width="140" height="34" rx="6" fill="oklch(0.546 0.245 262.881 / 0.12)" stroke="oklch(0.546 0.245 262.881 / 0.3)" strokeWidth="1.5" />
+                  <text x="85" y="361" fill="oklch(0.546 0.245 262.881 / 0.8)" fontSize="10" fontFamily="sans-serif">Add collaborators</text>
+                  <line x1="210" y1="357" x2="230" y2="357" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="233,353 233,361 241,357" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+                  <rect x="245" y="340" width="130" height="34" rx="6" fill="oklch(0.723 0.219 149.579 / 0.12)" stroke="oklch(0.723 0.219 149.579 / 0.3)" strokeWidth="1.5" />
+                  <text x="263" y="361" fill="oklch(0.723 0.219 149.579 / 0.8)" fontSize="10" fontFamily="sans-serif">Real-time edit</text>
+                  <line x1="375" y1="357" x2="395" y2="357" stroke="oklch(0.715 0.143 25.228 / 0.35)" strokeWidth="1.5" />
+                  <polygon points="398,353 398,361 406,357" fill="oklch(0.715 0.143 25.228 / 0.35)" />
+                  <rect x="410" y="340" width="105" height="34" rx="6" fill="oklch(0.627 0.265 303.9 / 0.12)" stroke="oklch(0.627 0.265 303.9 / 0.3)" strokeWidth="1.5" />
+                  <text x="425" y="361" fill="oklch(0.627 0.265 303.9 / 0.8)" fontSize="10" fontFamily="sans-serif">Export & share</text>
+
+                  <rect x="560" y="240" width="190" height="200" rx="12" fill="oklch(0.715 0.143 25.228 / 0.05)" stroke="oklch(0.715 0.143 25.228 / 0.25)" strokeWidth="1.5" />
+                  <rect x="580" y="260" width="150" height="80" rx="6" fill="oklch(0.546 0.245 262.881 / 0.12)" stroke="oklch(0.546 0.245 262.881 / 0.3)" strokeWidth="1.5" />
+                  <rect x="590" y="270" width="60" height="30" rx="4" fill="oklch(0.627 0.265 303.9 / 0.2)" stroke="oklch(0.627 0.265 303.9 / 0.4)" strokeWidth="1" />
+                  <text x="596" y="289" fill="oklch(0.627 0.265 303.9 / 0.8)" fontSize="9" fontFamily="sans-serif" fontWeight="600">Canvas</text>
+                  <line x1="650" y1="285" x2="665" y2="285" stroke="oklch(0.715 0.143 25.228 / 0.3)" strokeWidth="1" />
+                  <rect x="668" y="270" width="50" height="30" rx="4" fill="oklch(0.723 0.219 149.579 / 0.2)" stroke="oklch(0.723 0.219 149.579 / 0.4)" strokeWidth="1" />
+                  <text x="674" y="289" fill="oklch(0.723 0.219 149.579 / 0.8)" fontSize="9" fontFamily="sans-serif" fontWeight="600">Tools</text>
+                  <line x1="590" y1="308" x2="720" y2="308" stroke="oklch(0.715 0.143 25.228 / 0.2)" strokeWidth="1" />
+                  <text x="590" y="326" fill="oklch(0.546 0.245 262.881 / 0.7)" fontSize="10" fontFamily="sans-serif">Drop elements here</text>
+                  <rect x="580" y="360" width="150" height="60" rx="6" fill="oklch(0.723 0.219 149.579 / 0.08)" stroke="oklch(0.723 0.219 149.579 / 0.2)" strokeWidth="1.5" strokeDasharray="4 3" />
+                  <text x="630" y="385" fill="oklch(0.723 0.219 149.579 / 0.5)" fontSize="10" fontFamily="sans-serif" textAnchor="middle">Upload files</text>
+                  <text x="630" y="400" fill="oklch(0.723 0.219 149.579 / 0.35)" fontSize="9" fontFamily="sans-serif" textAnchor="middle">or drag & drop</text>
+
+                  <rect x="50" y="450" width="52" height="22" rx="4" fill="oklch(0.723 0.219 149.579 / 0.12)" />
+                  <text x="57" y="464" fill="oklch(0.723 0.219 149.579 / 0.8)" fontSize="9" fontFamily="sans-serif">pencil</text>
+                  <rect x="108" y="450" width="42" height="22" rx="4" fill="oklch(0.546 0.245 262.881 / 0.12)" />
+                  <text x="115" y="464" fill="oklch(0.546 0.245 262.881 / 0.8)" fontSize="9" fontFamily="sans-serif">rect</text>
+                  <rect x="156" y="450" width="38" height="22" rx="4" fill="oklch(0.627 0.265 303.9 / 0.12)" />
+                  <text x="163" y="464" fill="oklch(0.627 0.265 303.9 / 0.8)" fontSize="9" fontFamily="sans-serif">text</text>
+                  <rect x="200" y="450" width="50" height="22" rx="4" fill="oklch(0.715 0.143 25.228 / 0.12)" />
+                  <text x="207" y="464" fill="oklch(0.715 0.143 25.228 / 0.8)" fontSize="9" fontFamily="sans-serif">eraser</text>
+
+                  <g transform="translate(700, 50)">
+                    <rect x="0" y="0" width="26" height="26" rx="6" fill="oklch(0.627 0.265 303.9 / 0.12)" stroke="oklch(0.627 0.265 303.9 / 0.3)" strokeWidth="1" />
+                    <line x1="6" y1="13" x2="20" y2="13" stroke="oklch(0.627 0.265 303.9 / 0.8)" strokeWidth="1.5" />
+                    <line x1="13" y1="6" x2="13" y2="20" stroke="oklch(0.627 0.265 303.9 / 0.8)" strokeWidth="1.5" />
                   </g>
-                  <g transform="translate(702, 56)">
-                    <rect x="0" y="0" width="28" height="28" rx="6" fill="oklch(0.723 0.219 149.579 / 0.12)" stroke="oklch(0.723 0.219 149.579 / 0.3)" strokeWidth="1" />
-                    <text x="14" y="18" fill="oklch(0.723 0.219 149.579)" fontSize="12" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">+</text>
+                  <g transform="translate(732, 50)">
+                    <rect x="0" y="0" width="26" height="26" rx="6" fill="oklch(0.723 0.219 149.579 / 0.12)" stroke="oklch(0.723 0.219 149.579 / 0.3)" strokeWidth="1" />
+                    <text x="13" y="17" fill="oklch(0.723 0.219 149.579 / 0.8)" fontSize="11" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">+</text>
                   </g>
-                  <g transform="translate(734, 56)">
-                    <rect x="0" y="0" width="28" height="28" rx="6" fill="oklch(0.546 0.245 262.881 / 0.12)" stroke="oklch(0.546 0.245 262.881 / 0.3)" strokeWidth="1" />
-                    <text x="14" y="18" fill="oklch(0.546 0.245 262.881)" fontSize="14" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">&ndash;</text>
+                  <g transform="translate(764, 50)">
+                    <rect x="0" y="0" width="26" height="26" rx="6" fill="oklch(0.546 0.245 262.881 / 0.12)" stroke="oklch(0.546 0.245 262.881 / 0.3)" strokeWidth="1" />
+                    <text x="13" y="17" fill="oklch(0.546 0.245 262.881 / 0.8)" fontSize="13" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">&ndash;</text>
                   </g>
-                  <rect x="740" y="420" width="40" height="22" rx="4" fill="oklch(0.627 0.265 303.9 / 0.15)" />
-                  <text x="746" y="434" fill="oklch(0.627 0.265 303.9 / 0.8)" fontSize="9" fontFamily="sans-serif" fontWeight="600">100%</text>
-                  <rect x="400" y="250" width="8" height="8" rx="2" fill="oklch(0.546 0.245 262.881 / 0.6)" />
-                  <text x="412" y="257" fill="oklch(0.546 0.245 262.881 / 0.5)" fontSize="9" fontFamily="sans-serif">You</text>
-                  <rect x="450" y="250" width="8" height="8" rx="2" fill="oklch(0.723 0.219 149.579 / 0.6)" />
-                  <text x="462" y="257" fill="oklch(0.723 0.219 149.579 / 0.5)" fontSize="9" fontFamily="sans-serif">Alex</text>
+
+                  <rect x="740" y="450" width="44" height="22" rx="4" fill="oklch(0.627 0.265 303.9 / 0.12)" />
+                  <text x="748" y="464" fill="oklch(0.627 0.265 303.9 / 0.7)" fontSize="9" fontFamily="sans-serif" fontWeight="600">100%</text>
+
+                  <rect x="500" y="240" width="8" height="8" rx="2" fill="oklch(0.546 0.245 262.881 / 0.6)" />
+                  <text x="512" y="247" fill="oklch(0.546 0.245 262.881 / 0.5)" fontSize="9" fontFamily="sans-serif">You</text>
+                  <rect x="536" y="240" width="8" height="8" rx="2" fill="oklch(0.723 0.219 149.579 / 0.6)" />
+                  <text x="548" y="247" fill="oklch(0.723 0.219 149.579 / 0.5)" fontSize="9" fontFamily="sans-serif">Alex</text>
                 </g>
               </svg>
             </div>

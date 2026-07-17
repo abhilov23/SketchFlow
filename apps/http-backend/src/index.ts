@@ -135,12 +135,16 @@ app.delete("/room/:slug", middleware, async (req, res) => {
   const userId = req.userId;
 
    try {
-    const room = await prismaClient.room.delete({
+    const result = await prismaClient.room.deleteMany({
         where: {
             slug,
             adminId: userId
         }
     })
+    if (result.count === 0) {
+      res.status(404).json({ message: "Room not found or not authorized" });
+      return;
+    }
     res.status(200).json({ message: "Room deleted successfully" });
    } catch (error) {
     res.status(500).json({ message: "Failed to delete room" });

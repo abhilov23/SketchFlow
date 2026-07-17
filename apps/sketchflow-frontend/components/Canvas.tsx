@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { initDraw } from "@/app/draw"
 import {
   Pencil, Minus, RectangleHorizontalIcon, Circle, Diamond, Type, Eraser,
-  ZoomIn, ZoomOut, Move, Undo, Sun, Moon,
+  ZoomIn, ZoomOut, Undo, Sun, Moon, Download,
 } from "lucide-react"
 
 type Shape = "circle" | "rect" | "line" | "pencil" | "diamond" | "eraser" | "text"
@@ -12,7 +12,7 @@ const toolGroups = [
   {
     label: "Draw",
     tools: [
-      { id: "pencil" as Shape, icon: <Pencil size={18} />, label: "Freehand" },
+      { id: "pencil" as Shape, icon: <Pencil size={18} />, label: "Pencil" },
     ],
   },
   {
@@ -37,7 +37,6 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [selectedTool, setSelectedTool] = useState<Shape>("circle")
   const [zoom, setZoom] = useState(1)
-  const [isPanning, setIsPanning] = useState(false)
   const drawInstanceRef = useRef<any>(null)
   const [theme, setTheme] = useState<Theme>("dark")
 
@@ -49,8 +48,16 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
     const canvas = canvasRef.current
     if (!canvas) return
 
-    initDraw(canvas, roomId, socket, { theme }).then(instance => {
-      drawInstanceRef.current = instance
+    let cancelled = false
+    initDraw(canvas, roomId, socket, {
+      theme,
+      onZoomChange: (z) => setZoom(z),
+    }).then(instance => {
+      if (cancelled) {
+        instance?.cleanup?.()
+      } else {
+        drawInstanceRef.current = instance
+      }
     })
 
     const handleResize = () => {
@@ -61,23 +68,19 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
 
     window.addEventListener("resize", handleResize)
     return () => {
+      cancelled = true
       window.removeEventListener("resize", handleResize)
       drawInstanceRef.current?.cleanup?.()
     }
-  }, [canvasRef, roomId, socket, theme])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRef, roomId, socket])
+
+  useEffect(() => {
+    drawInstanceRef.current?.setTheme?.(theme)
+  }, [theme])
 
   const handleZoom = (zoomIn: boolean) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const event = new WheelEvent("wheel", {
-      deltaY: zoomIn ? -100 : 100,
-      clientX: rect.left + rect.width / 2,
-      clientY: rect.top + rect.height / 2,
-      ctrlKey: true,
-    })
-    canvas.dispatchEvent(event)
-    setZoom(z => zoomIn ? Math.min(z + 0.1, 5) : Math.max(z - 0.1, 0.1))
+    drawInstanceRef.current?.changeZoom?.(zoomIn ? 0.1 : -0.1)
   }
 
   const cursorMap: Record<string, string> = {
@@ -85,7 +88,7 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
     text: "text",
   }
 
-  const cursor = isPanning ? "grab" : cursorMap[selectedTool] || "crosshair"
+  const cursor = cursorMap[selectedTool] || "crosshair"
 
   const toolbarBg = theme === "dark" ? "bg-zinc-900/95 border-zinc-800" : "bg-white/95 border-zinc-200"
   const canvasBg = theme === "dark" ? "bg-zinc-950" : "bg-zinc-100"
@@ -94,8 +97,8 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
     <div className={`relative h-screen w-full overflow-hidden ${canvasBg}`}>
       <canvas
         ref={canvasRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={typeof window !== "undefined" ? window.innerWidth : 1920}
+        height={typeof window !== "undefined" ? window.innerHeight : 1080}
         className="block"
         style={{ cursor }}
       />
@@ -120,14 +123,12 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
           <div className="flex items-center gap-0.5 pl-2 ml-2 border-l border-zinc-700/30">
             <ToolButton icon={<ZoomIn size={18} />} label="Zoom in" onClick={() => handleZoom(true)} theme={theme} />
             <ToolButton icon={<ZoomOut size={18} />} label="Zoom out" onClick={() => handleZoom(false)} theme={theme} />
-            <ToolButton active={isPanning} icon={<Move size={18} />} label="Pan canvas" onClick={() => {
-              setIsPanning(p => !p)
-              drawInstanceRef.current?.setPanningMode?.(!isPanning)
-            }} theme={theme} />
           </div>
           <div className="flex items-center gap-0.5 pl-2 ml-2 border-l border-zinc-700/30">
             <ToolButton icon={<Undo size={18} />} label="Undo"
               onClick={() => drawInstanceRef.current?.performUndo?.()} theme={theme} />
+            <ToolButton icon={<Download size={18} />} label="Export PNG"
+              onClick={() => drawInstanceRef.current?.exportPNG?.()} theme={theme} />
             <ToolButton icon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               label="Toggle theme" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} theme={theme} />
           </div>
@@ -144,7 +145,7 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
 
       {/* Canvas controls hint */}
       <div className={`fixed bottom-6 left-6 z-50 rounded-xl border px-3.5 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur-md ${toolbarBg}`}>
-        <span>Scroll to zoom &middot; Hold Space + drag to pan</span>
+        <span>Scroll to zoom &middot; Middle-click or Space + drag to pan</span>
       </div>
     </div>
   )

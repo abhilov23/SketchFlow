@@ -1,29 +1,29 @@
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs"
-import { Play, ChevronLeft, Layers, Palette, Users, Globe, CheckCircle, Sparkles, ArrowRight, Monitor, Smartphone, Shield } from "lucide-react"
+import { Play, ChevronLeft, Layers, Palette, Users, Globe, Sparkles, ArrowRight, Monitor, Move, Eraser } from "lucide-react"
 
 const highlights = [
-  { icon: <Layers className="h-5 w-5" />, title: "Multi-layer Canvas", desc: "Organize your ideas across multiple layers for complex diagrams and detailed illustrations." },
-  { icon: <Palette className="h-5 w-5" />, title: "Rich Styling", desc: "Customize colors, fonts, stroke widths, and fill styles to match your brand perfectly." },
-  { icon: <Users className="h-5 w-5" />, title: "Team Collaboration", desc: "Invite team members to edit in real-time with live cursor presence and instant sync." },
+  { icon: <Move className="h-5 w-5" />, title: "Infinite Canvas", desc: "Pan and zoom across an endless canvas. No boundaries, no limits — just your ideas." },
+  { icon: <Palette className="h-5 w-5" />, title: "Drawing Tools", desc: "Pencil, shapes, text, and eraser — everything you need to sketch and annotate." },
+  { icon: <Users className="h-5 w-5" />, title: "Real-time Collaboration", desc: "Invite team members to edit in real-time with instant sync across all users." },
   { icon: <Globe className="h-5 w-5" />, title: "Cross-platform", desc: "Works seamlessly on desktop, tablet, and mobile browsers. No app installation needed." },
-  { icon: <Monitor className="h-5 w-5" />, title: "Export & Share", desc: "Export as PNG, SVG, or PDF. Share via direct link with view or edit permissions." },
-  { icon: <Shield className="h-5 w-5" />, title: "Enterprise Security", desc: "End-to-end encryption, SSO support, and SOC 2 compliance for enterprise teams." },
+  { icon: <Monitor className="h-5 w-5" />, title: "PNG Export", desc: "Export your canvas as a PNG image with a single click. Perfect for sharing." },
+  { icon: <Eraser className="h-5 w-5" />, title: "Lightweight & Fast", desc: "Optimized performance that works smoothly on any device. No heavy downloads." },
 ]
 
 const tutorials = [
-  { num: 1, title: "Create an Account", desc: "Sign up for free in under 30 seconds with your email or Google account." },
-  { num: 2, title: "Create a New Board", desc: "Click 'New Board' from your dashboard or start from a pre-built template." },
+  { num: 1, title: "Create an Account", desc: "Sign up for free in under 30 seconds with your email." },
+  { num: 2, title: "Create a New Board", desc: "Click 'New Board' from your dashboard to create a fresh canvas." },
   { num: 3, title: "Choose Your Tools", desc: "Use the toolbar to select shapes, freehand pencil, text tool, or eraser." },
   { num: 4, title: "Invite Collaborators", desc: "Share the board link with your team and watch their changes appear in real-time." },
 ]
 
 const faqs = [
-  { q: "Is SketchFlow free to use?", a: "Yes! SketchFlow offers a generous free tier with unlimited boards and real-time collaboration for up to 5 users. Pro plans with advanced features start at $8/month." },
-  { q: "Can I export my drawings?", a: "Absolutely. You can export your boards as PNG, SVG, or PDF with just a few clicks. Pro users also get vector export and high-resolution options." },
-  { q: "Do I need to create an account?", a: "Yes, you'll need a free account to save and share your boards. It takes less than a minute to sign up with your email or Google account." },
-  { q: "Is there a mobile app?", a: "SketchFlow is fully responsive and works great on mobile browsers. Native iOS and Android apps are coming soon." },
-  { q: "Can I use SketchFlow offline?", a: "Currently, SketchFlow requires an internet connection for real-time collaboration. Offline mode with local caching is on our roadmap." },
+  { q: "Is SketchFlow free to use?", a: "Yes! SketchFlow is completely free with unlimited boards and real-time collaboration." },
+  { q: "Can I export my drawings?", a: "Yes. You can export your canvas as a PNG image with a single click." },
+  { q: "Do I need to create an account?", a: "Yes, you'll need a free account to save and share your boards. It takes less than a minute to sign up." },
+  { q: "Is there a mobile app?", a: "SketchFlow is fully responsive and works great on mobile browsers." },
+  { q: "Can I use SketchFlow offline?", a: "Currently, SketchFlow requires an internet connection for real-time collaboration." },
 ]
 
 export default function WatchDemoPage() {
