@@ -1,211 +1,202 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { CreateUserSchema, SigninSchema } from "@repo/common/frontendTypes"; // Adjust path as needed
-
-// Custom CSS (unchanged, with error styling)
-const customStyles = `
-  .shadow-glow { box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); }
-  .hover-glow:hover { box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
-  .animate-float-subtle { animation: floatSubtle 6s ease-in-out infinite; }
-  @keyframes floatSubtle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-  .animate-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
-  @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
-    50% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
-  }
-  .btn-primary {
-    background: linear-gradient(90deg, #6b7280, #4b5563);
-    color: white;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    transition: all 0.3s ease;
-  }
-  .btn-primary:hover {
-    background: linear-gradient(90deg, #4b5563, #374151);
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-  }
-  .btn-primary:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
-  .btn-primary:active { transform: scale(0.95); }
-  .input-field {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-  }
-  .input-field:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  }
-  .input-field::placeholder { color: rgba(255, 255, 255, 0.4); }
-  .error-text { color: #f87171; font-size: 0.875rem; margin-top: 0.25rem; }
-`;
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { CreateUserSchema, SigninSchema } from "@repo/common/frontendTypes"
+import { Shapes, Eye, EyeOff, Mail, User, Lock } from "lucide-react"
 
 export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({}); // Validation errors
+  const router = useRouter()
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [message, setMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage("");
-    setErrors({});
+    e.preventDefault()
+    setIsLoading(true)
+    setMessage("")
+    setErrors({})
 
-    // Select schema based on signin or signup
-    const schema = isSignIn ? SigninSchema : CreateUserSchema;
-    const data = isSignIn ? { username, password } : { username, password, name };
+    const schema = isSignIn ? SigninSchema : CreateUserSchema
+    const data = isSignIn ? { username, password } : { username, password, name }
 
-    // Validate with Zod
-    const result = schema.safeParse(data);
+    const result = schema.safeParse(data)
     if (!result.success) {
-      const fieldErrors: { [key: string]: string } = {};
+      const fieldErrors: { [key: string]: string } = {}
       result.error.errors.forEach((err) => {
-        fieldErrors[err.path[0]] = err.message;
-      });
-      setErrors(fieldErrors);
-      setIsLoading(false);
-      return;
+        fieldErrors[String(err.path[0])] = err.message
+      })
+      setErrors(fieldErrors)
+      setIsLoading(false)
+      return
     }
 
-    const endpoint = isSignIn ? "/signin" : "/signup"; // Fixed endpoint
-    const url = `http://localhost:3005${endpoint}`;
+    const endpoint = isSignIn ? "/signin" : "/signup"
+    const url = `http://localhost:3005${endpoint}`
 
     try {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
+      })
 
-      const responseData = await response.json();
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(responseData.message || "Something went wrong");
+        throw new Error(responseData.message || "Something went wrong")
       }
 
       if (isSignIn) {
-        localStorage.setItem("token", responseData.token);
-        setMessage("Signed in successfully!");
-        router.push("/dashboard");
+        localStorage.setItem("token", responseData.token)
+        setMessage("Signed in successfully!")
+        router.push("/dashboard")
       } else {
-        setMessage("Account created successfully! Please sign in.");
-        setUsername("");
-        setPassword("");
-        setName("");
+        setMessage("Account created successfully! Please sign in.")
+        setUsername("")
+        setPassword("")
+        setName("")
       }
-    } catch (error: any) {
-      setMessage(error.message || "An error occurred");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "An error occurred")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="w-screen h-screen flex justify-center items-center bg-gray-950 text-white">
-      <style>{customStyles}</style>
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gray-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-float-subtle opacity-30"></div>
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-gray-400/20 rounded-full blur-3xl translate-x-1/2 animate-float-subtle opacity-30" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-gray-300/20 rounded-full blur-3xl animate-float-subtle opacity-30" style={{ animationDelay: "2s" }}></div>
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       </div>
-
-      <div className="p-8 bg-gray-900/80 backdrop-blur-sm rounded-xl w-full max-w-md transform transition-all shadow-glow hover-glow">
-        <h2 className="text-3xl font-bold text-white text-center mb-6">
-          {isSignIn ? "Welcome Back" : "Create Account"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-              Email
-            </label>
-            <input
-              id="username"
-              type="email"
-              placeholder="Enter your email"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full input-field"
-              required
-            />
-            {errors.username && <p className="error-text">{errors.username}</p>}
-          </div>
-
-          {!isSignIn && (
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                Name
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Shapes className="h-5 w-5" />
+            </div>
+            <span className="text-lg font-bold">SketchFlow</span>
+          </Link>
+          <h1 className="mt-6 text-2xl font-bold tracking-tight">
+            {isSignIn ? "Welcome back" : "Create an account"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isSignIn ? "Sign in to continue to your dashboard" : "Start collaborating with your team"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isSignIn && (
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium">
+                  Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  />
+                </div>
+                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+              </div>
+            )}
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-medium">
+                Email
               </label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full input-field"
-                required
-              />
-              {errors.name && <p className="error-text">{errors.name}</p>}
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  id="username"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                />
+              </div>
+              {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 pl-10 pr-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : isSignIn ? (
+                "Sign In"
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </form>
+          {message && (
+            <div
+              className={`mt-4 rounded-lg p-3 text-sm ${
+                message.includes("success")
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "bg-destructive/10 text-destructive"
+              }`}
+            >
+              {message}
             </div>
           )}
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full input-field"
-              required
-            />
-            {errors.password && <p className="error-text">{errors.password}</p>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full btn-primary ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {isLoading ? "Loading..." : isSignIn ? "Sign In" : "Sign Up"}
-          </button>
-        </form>
-
-        {message && (
-          <p className={`mt-4 text-center text-sm ${message.includes("success") ? "text-green-400" : "text-red-400"}`}>
-            {message}
-          </p>
-        )}
-
-        <p className="mt-6 text-center text-sm text-gray-400">
-          {isSignIn ? "Need an account?" : "Already have an account?"}{" "}
+        </div>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          {isSignIn ? "Don&apos;t have an account?" : "Already have an account?"}{" "}
           <Link
             href={isSignIn ? "/signup" : "/signin"}
-            className="text-gray-300 hover:text-white font-medium transition-colors duration-300"
+            className="font-medium text-primary hover:text-primary/80 transition-colors"
           >
             {isSignIn ? "Sign Up" : "Sign In"}
           </Link>
         </p>
       </div>
     </div>
-  );
+  )
 }

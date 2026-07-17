@@ -19,7 +19,16 @@ interface CustomWindow extends Window {
 }
 declare const window: CustomWindow;
 
-export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
+export async function initDraw(
+  canvas: HTMLCanvasElement,
+  roomId: string,
+  socket: WebSocket,
+  options?: {
+    onShapeAdded?: (shape: Shape) => void;
+    onShapeRemoved?: (shapeId: string) => void;
+    theme?: string;
+  }
+) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -45,13 +54,14 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         const parsedData = JSON.parse(message.message);
         
         if (parsedData.shape) {
-          // Add new shape
-          existingShapes.push(parsedData.shape);
-          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+          const newShape = parsedData.shape as Shape;
+          existingShapes.push(newShape);
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+          options?.onShapeAdded?.(newShape);
         } else if (parsedData.eraseId) {
-          // Remove erased shape
           existingShapes = existingShapes.filter(shape => shape.id !== parsedData.eraseId);
-          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+          options?.onShapeRemoved?.(parsedData.eraseId);
         }
       }
     } catch (error) {
@@ -74,6 +84,9 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
   let offsetY = 0;
   let zoom = 1.0; 
   let textInput: HTMLTextAreaElement | null = null;
+  let panModeEnabled = false;
+  const undoStack: Array<{ type: 'add' | 'remove', shape?: Shape, erasedShape?: Shape }> = [];
+  let canvasTheme = options?.theme || 'dark';
 
   // Function to generate a unique ID for shapes
   const generateShapeId = () => {
@@ -153,7 +166,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       }));
       
       removeTextInput();
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     } else if (textInput) {
       removeTextInput();
     }
@@ -272,7 +285,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     startX = pos.x;
     startY = pos.y;
 
-    if (e.button === 1 || (e.shiftKey && e.button === 0)) { 
+    if (panModeEnabled || e.button === 1 || (e.shiftKey && e.button === 0)) { 
       isPanning = true;
       panStartX = e.clientX;
       panStartY = e.clientY;
@@ -292,6 +305,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       const foundShape = findShapeAtPosition(pos.x, pos.y);
       if (foundShape) {
         const { shape } = foundShape;
+        undoStack.push({ type: 'remove', erasedShape: shape });
         // Remove the shape locally
         existingShapes = existingShapes.filter(s => s.id !== shape.id);
         // Notify other clients
@@ -300,7 +314,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
           roomId,
           message: JSON.stringify({ eraseId: shape.id })
         }));
-        clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+        clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
       }
       isDrawing = false;
       return;
@@ -319,7 +333,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
       offsetY += dy;
       panStartX = e.clientX;
       panStartY = e.clientY;
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
       return;
     }
 
@@ -327,7 +341,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     
     // Handle eraser hover effect
     if (window.selectedTool === 'eraser') {
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
       
       // Draw eraser cursor
       applyTransform(ctx, offsetX, offsetY, zoom);
@@ -400,7 +414,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     if (selectedTool === 'text') return;
 
     // Preview drawing
-    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
     applyTransform(ctx, offsetX, offsetY, zoom);
 
@@ -502,12 +516,13 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     }
 
     existingShapes.push(shape);
+    undoStack.push({ type: 'add', shape });
     socket.send(JSON.stringify({
       type: 'chat',
       roomId,
       message: JSON.stringify({ shape })
     }));
-    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+    clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
   });
 
   
@@ -523,7 +538,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         message: JSON.stringify({ shape })
       }));
       pencilPoints = [];
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
     isPanning = false;
   });
@@ -555,7 +570,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         textInput.style.transform = `scale(${zoom})`;
       }
 
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     } else { 
       offsetX -= e.deltaX;
       offsetY -= e.deltaY;
@@ -567,7 +582,7 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         textInput.style.top = `${rect.top - e.deltaY}px`;
       }
       
-      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
   });
 
@@ -577,14 +592,39 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
   };
   window.addEventListener('beforeunload', handleBeforeUnload);
   
-  clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom);
+  clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
   
   // Return utility functions for use by parent component
   return {
-    redraw: () => clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom),
+    redraw: () => clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme),
     cleanup: () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       removeTextInput();
+    },
+    setPanningMode: (active: boolean) => { panModeEnabled = active; },
+    performUndo: () => {
+      const action = undoStack.pop();
+      if (!action) return;
+      if (action.type === 'add' && action.shape) {
+        existingShapes = existingShapes.filter(s => s.id !== action.shape!.id);
+        socket.send(JSON.stringify({
+          type: 'chat',
+          roomId,
+          message: JSON.stringify({ eraseId: action.shape.id })
+        }));
+      } else if (action.type === 'remove' && action.erasedShape) {
+        existingShapes.push(action.erasedShape);
+        socket.send(JSON.stringify({
+          type: 'chat',
+          roomId,
+          message: JSON.stringify({ shape: action.erasedShape })
+        }));
+      }
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+    },
+    setTheme: (newTheme: string) => {
+      canvasTheme = newTheme;
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
   };
 }
@@ -596,13 +636,14 @@ function applyTransform(ctx: CanvasRenderingContext2D, offsetX: number, offsetY:
   ctx.scale(zoom, zoom);
 }
 
-function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number) {
+function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number, theme?: string) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  const isLight = theme === 'light';
+  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+  ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
   applyTransform(ctx, offsetX, offsetY, zoom);
   ctx.font = '16px sans-serif'; // Set default font
 
@@ -666,12 +707,12 @@ async function getExistingDShapes(roomId: string): Promise<Shape[]> {
         try {
           const parsed = x.message.startsWith('{') ? JSON.parse(x.message) : {};
           return parsed.shape;
-        } catch (e) {
+        } catch {
           console.warn('Invalid shape message:', x.message);
           return null;
         }
       })
-      .filter((shape): shape is Shape => shape !== null && VALID_TOOLS.includes(shape.type));
+      .filter((shape: Shape | null): shape is Shape => shape !== null && VALID_TOOLS.includes(shape.type));
   } catch (error) {
     console.error('Failed to fetch shapes:', error);
     return [];
