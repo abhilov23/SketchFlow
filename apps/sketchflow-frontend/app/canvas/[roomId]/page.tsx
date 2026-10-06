@@ -1,14 +1,5 @@
-import { RoomCanvas } from "@/components/RoomCanvas";
+import { SketchEditor } from "@/components/SketchEditor"
 
-export default async function Canvas({params}:{
-    params: Promise<{
-        roomId: string
-    }>
-}){
-   
-    const roomId = (await params).roomId;
-    console.log(roomId);
-    
-
-     return <RoomCanvas roomId={roomId} />
+export default function CanvasPage() {
+  return <SketchEditor />
 }
