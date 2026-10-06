@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Shapes } from "lucide-react"
 import {
   Pencil, Minus, RectangleHorizontalIcon, Circle, Diamond, Type, Eraser,
-  ZoomIn, ZoomOut, Undo, Sun, Moon, Download,
+  ZoomIn, ZoomOut, Undo, Sun, Moon, Download, Share2,
 } from "lucide-react"
 
 type Shape = "circle" | "rect" | "line" | "pencil" | "diamond" | "eraser" | "text"
@@ -37,7 +37,7 @@ const toolGroups = [
 
 export function Canvas({ roomId, boardName, socket }: { roomId: string; boardName: string; socket: WebSocket }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [selectedTool, setSelectedTool] = useState<Shape>("circle")
+  const [selectedTool, setSelectedTool] = useState<Shape>("pencil")
   const [zoom, setZoom] = useState(1)
   const drawInstanceRef = useRef<any>(null)
   const [theme, setTheme] = useState<Theme>("light")
@@ -92,8 +92,11 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
 
   const cursor = cursorMap[selectedTool] || "crosshair"
 
-  const toolbarBg = theme === "dark" ? "bg-zinc-900/95 border-zinc-800" : "bg-white/95 border-zinc-200"
-  const canvasBg = theme === "dark" ? "bg-zinc-950" : "bg-zinc-100"
+  const toolbarBg = theme === "dark" ? "bg-zinc-900/95 border-zinc-800" : "bg-white/95 border-[#e9e5ed]"
+  const canvasBg = theme === "dark" ? "bg-zinc-950" : "bg-[#fcfbfd]"
+  const shareBoard = async () => {
+    await navigator.clipboard?.writeText(window.location.href)
+  }
 
   return (
     <div className={`relative h-screen w-full overflow-hidden ${canvasBg}`}>
@@ -105,16 +108,19 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
         style={{ cursor }}
       />
 
-      <Link href="/dashboard" className={`fixed left-4 top-4 z-50 flex h-11 max-w-[calc(50%-1rem)] items-center gap-2.5 rounded-xl border px-3 shadow-lg backdrop-blur-md sm:left-6 ${toolbarBg}`}>
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700"><Shapes className="h-4 w-4" /></span>
-        <span className="min-w-0 text-left"><span className="block text-[10px] text-muted-foreground">All boards</span><span className="block truncate text-xs font-semibold">{boardName}</span></span>
-      </Link>
+      <header className={`fixed left-3 right-3 top-3 z-50 flex h-12 items-center justify-between rounded-2xl border px-3 shadow-sm backdrop-blur-xl sm:left-6 sm:right-6 sm:top-5 sm:px-5 ${toolbarBg}`}>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Link href="/dashboard" aria-label="Back to all boards" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700"><Shapes className="h-4 w-4" /></Link>
+          <span className="truncate text-xs font-semibold text-[#4c4955]">{boardName}</span>
+          <span className="hidden rounded-md bg-[#f6f4f8] px-2 py-1 text-[10px] text-[#9995a1] sm:inline">Collaborative board</span>
+        </div>
+        <button type="button" onClick={shareBoard} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#262333] px-3 text-[11px] font-semibold text-white transition hover:bg-violet-700"><Share2 size={13} /> Share</button>
+      </header>
 
-      {/* Floating toolbar */}
-      <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-2xl border shadow-2xl backdrop-blur-md ${toolbarBg}`}>
-        <div className="flex items-center gap-1 px-2 py-2">
+      <div className={`fixed bottom-4 left-1/2 z-50 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-x-auto rounded-2xl border shadow-lg backdrop-blur-xl sm:bottom-6 ${toolbarBg}`}>
+        <div className="flex items-center gap-1 px-2 py-1.5">
           {toolGroups.map((group, gi) => (
-            <div key={group.label} className={`flex items-center gap-0.5 ${gi < toolGroups.length - 1 ? "pr-2 mr-2 border-r border-zinc-700/30" : ""}`}>
+            <div key={group.label} className={`flex items-center gap-0.5 ${gi < toolGroups.length - 1 ? "mr-1 border-r border-[#eeebf1] pr-1 sm:mr-2 sm:pr-2" : ""}`}>
               {group.tools.map(t => (
                 <ToolButton
                   key={t.id}
@@ -127,11 +133,11 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
               ))}
             </div>
           ))}
-          <div className="flex items-center gap-0.5 pl-2 ml-2 border-l border-zinc-700/30">
+          <div className="ml-1 flex items-center gap-0.5 border-l border-[#eeebf1] pl-1 sm:ml-2 sm:pl-2">
             <ToolButton icon={<ZoomIn size={18} />} label="Zoom in" onClick={() => handleZoom(true)} theme={theme} />
             <ToolButton icon={<ZoomOut size={18} />} label="Zoom out" onClick={() => handleZoom(false)} theme={theme} />
           </div>
-          <div className="flex items-center gap-0.5 pl-2 ml-2 border-l border-zinc-700/30">
+          <div className="ml-1 flex items-center gap-0.5 border-l border-[#eeebf1] pl-1 sm:ml-2 sm:pl-2">
             <ToolButton icon={<Undo size={18} />} label="Undo"
               onClick={() => drawInstanceRef.current?.performUndo?.()} theme={theme} />
             <ToolButton icon={<Download size={18} />} label="Export PNG"
@@ -142,17 +148,9 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
         </div>
       </div>
 
-      {/* Zoom indicator */}
-      <div className={`fixed bottom-6 right-6 z-50 rounded-xl border px-3.5 py-2 text-sm font-medium shadow-lg backdrop-blur-md ${toolbarBg}`}>
-        <div className="flex items-center gap-2">
-          <ZoomIn className="h-3.5 w-3.5 text-muted-foreground" />
-          <span>{Math.round(zoom * 100)}%</span>
-        </div>
-      </div>
-
-      {/* Canvas controls hint */}
-      <div className={`fixed bottom-6 left-6 z-50 rounded-xl border px-3.5 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur-md ${toolbarBg}`}>
-        <span>Scroll to zoom &middot; Middle-click or Space + drag to pan</span>
+      <div className={`fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] shadow-sm backdrop-blur-md sm:bottom-6 sm:right-6 ${toolbarBg} ${theme === "dark" ? "text-zinc-300" : "text-[#898591]"}`}>
+        <ZoomIn className="h-3.5 w-3.5" />
+        <span>{Math.round(zoom * 100)}%</span>
       </div>
     </div>
   )
@@ -167,10 +165,10 @@ function ToolButton({ active, icon, label, onClick, disabled, theme }: {
         className={`flex items-center justify-center w-9 h-9 rounded-xl text-sm transition-all ${
           disabled ? "opacity-25 cursor-not-allowed" :
           active
-            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+            ? theme === "dark" ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20" : "bg-violet-100 text-violet-700"
             : theme === "dark"
               ? "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
-              : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200"
+              : "text-[#817d89] hover:text-violet-700 hover:bg-[#f5f2fa]"
         }`}
         onClick={onClick}
         disabled={disabled}

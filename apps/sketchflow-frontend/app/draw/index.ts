@@ -698,10 +698,20 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
   ctx.setTransform(1, 0, 0, 1, 0, 0); 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const isLight = theme === 'light';
-  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
+  ctx.fillStyle = isLight ? 'rgba(252, 251, 253, 1)' : 'rgba(0, 0, 0, 1)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (isLight) {
+    ctx.fillStyle = 'rgba(217, 212, 226, 0.72)';
+    for (let x = 9; x < canvas.width; x += 18) {
+      for (let y = 9; y < canvas.height; y += 18) {
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+  }
 
-  ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+  ctx.strokeStyle = isLight ? 'rgba(80, 75, 90, 1)' : 'rgba(255, 255, 255, 1)';
   applyTransform(ctx, offsetX, offsetY, zoom);
   ctx.lineWidth = 1 / zoom;
   ctx.font = '16px sans-serif'; // Set default font
