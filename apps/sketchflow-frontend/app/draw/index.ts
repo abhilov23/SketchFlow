@@ -34,6 +34,9 @@ export async function initDraw(
   if (!ctx) return;
 
   let existingShapes: Shape[] = [];
+  const pendingSocketEvents: MessageEvent[] = [];
+  socket.onmessage = (event) => pendingSocketEvents.push(event);
+  socket.send(JSON.stringify({ type: 'join_room', roomId }));
   try {
     existingShapes = await getExistingDShapes(roomId);
     // Assign IDs to existing shapes if they don't have them
@@ -46,37 +49,6 @@ export async function initDraw(
   } catch (error) {
     console.error('Failed to initialize shapes:', error);
   }
-
-  // WebSocket handling
-  socket.onmessage = null;
-  socket.onerror = null;
-  socket.onclose = null;
-  socket.onmessage = (event) => {
-    try {
-      const message = JSON.parse(event.data);
-      if (message.type === 'chat') {
-        const parsedData = JSON.parse(message.message);
-        
-        if (parsedData.shape) {
-          const newShape = parsedData.shape as Shape;
-          const alreadyExists = existingShapes.some(s => s.id === newShape.id);
-          if (!alreadyExists) {
-            existingShapes.push(newShape);
-          }
-          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-        } else if (parsedData.eraseId) {
-          existingShapes = existingShapes.filter(shape => shape.id !== parsedData.eraseId);
-          clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-          options?.onShapeRemoved?.(parsedData.eraseId);
-        }
-      }
-    } catch (error) {
-      console.error('WebSocket message error:', error);
-    }
-  };
-
-  socket.onerror = (error) => console.error('WebSocket error:', error);
-  socket.onclose = () => console.log('WebSocket connection closed');
 
   // Drawing state
   let isDrawing = false;
@@ -627,7 +599,29 @@ canvas.addEventListener('mousedown', handleMouseDown);
   window.addEventListener('beforeunload', handleBeforeUnload);
   
   clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-  
+
+  const handleSocketMessage = (event: MessageEvent) => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type !== 'chat') return;
+      const parsedData = JSON.parse(message.message);
+      if (parsedData.shape && VALID_TOOLS.filter((tool) => tool !== 'eraser').includes(parsedData.shape.type)) {
+        const newShape = parsedData.shape as Shape;
+        if (!existingShapes.some((shape) => shape.id && shape.id === newShape.id)) existingShapes.push(newShape);
+      } else if (parsedData.eraseId) {
+        existingShapes = existingShapes.filter((shape) => shape.id !== parsedData.eraseId);
+        options?.onShapeRemoved?.(parsedData.eraseId);
+      }
+      clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+    }
+  };
+  socket.onmessage = handleSocketMessage;
+  socket.onerror = (error) => console.error('WebSocket error:', error);
+  socket.onclose = () => console.log('WebSocket connection closed');
+  pendingSocketEvents.forEach(handleSocketMessage);
+
   // Return utility functions for use by parent component
   return {
     redraw: () => clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme),
@@ -752,11 +746,10 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
         ctx.stroke();
         break;
       case 'text':
-        // Set font size if specified
         if (shape.fontSize) {
           ctx.font = `${shape.fontSize}px sans-serif`;
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
         ctx.fillText(shape.content, shape.x, shape.y);
         ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // Reset fill style
         break;
@@ -767,19 +760,25 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
 async function getExistingDShapes(roomId: string): Promise<Shape[]> {
   try {
     const res = await axios.get(`${HTTP_BACKEND}/chats/${roomId}`);
-    const messages = res.data.messages || [];
-    
-    return messages
-      .map((x: { message: string }) => {
-        try {
-          const parsed = x.message.startsWith('{') ? JSON.parse(x.message) : {};
-          return parsed.shape;
-        } catch {
-          console.warn('Invalid shape message:', x.message);
-          return null;
+    const messages: { id: number; message: string }[] = res.data.messages || [];
+    const shapes: Shape[] = [];
+
+    for (const chat of messages) {
+      try {
+        const parsed = JSON.parse(chat.message);
+        if (parsed.shape && VALID_TOOLS.filter((tool) => tool !== 'eraser').includes(parsed.shape.type)) {
+          const shape = parsed.shape as Shape;
+          if (!shape.id) shape.id = `chat-${chat.id}`;
+          if (!shapes.some((entry) => entry.id === shape.id)) shapes.push(shape);
+        } else if (parsed.eraseId) {
+          const index = shapes.findIndex((shape) => shape.id === parsed.eraseId);
+          if (index !== -1) shapes.splice(index, 1);
         }
-      })
-      .filter((shape: Shape | null): shape is Shape => shape !== null && VALID_TOOLS.includes(shape.type));
+      } catch {
+        console.warn('Invalid board event:', chat.id);
+      }
+    }
+    return shapes;
   } catch (error) {
     console.error('Failed to fetch shapes:', error);
     return [];

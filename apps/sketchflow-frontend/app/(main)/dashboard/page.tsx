@@ -82,6 +82,7 @@ export default function Dashboard() {
   }
 
   const handleDeleteRoom = async (slug: string) => {
+    if (!window.confirm(`Delete “${slug}” and its saved drawing history? This cannot be undone.`)) return
     setErrors({})
     setSuccessMessage("")
     try {
