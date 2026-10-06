@@ -99,8 +99,8 @@ export async function initDraw(
     textInput.style.left = `${x + offsetX}px`;
     textInput.style.top = `${y + offsetY}px`;
     textInput.style.background = 'transparent';
-    textInput.style.color = 'white';
-    textInput.style.border = '1px dashed white';
+    textInput.style.color = canvasTheme === 'light' ? '#252331' : 'white';
+    textInput.style.border = `1px dashed ${canvasTheme === 'light' ? '#817d89' : 'white'}`;
     textInput.style.padding = '4px';
     textInput.style.minWidth = '100px';
     textInput.style.minHeight = '30px';
@@ -698,7 +698,7 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
   ctx.setTransform(1, 0, 0, 1, 0, 0); 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const isLight = theme === 'light';
-  ctx.fillStyle = isLight ? 'rgba(252, 251, 253, 1)' : 'rgba(0, 0, 0, 1)';
+  ctx.fillStyle = isLight ? 'rgba(252, 251, 253, 1)' : 'rgba(17, 16, 23, 1)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (isLight) {
     ctx.fillStyle = 'rgba(217, 212, 226, 0.72)';

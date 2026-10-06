@@ -62,13 +62,13 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
   }
 
   return (
-    <section className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#f5f3f8] px-5 py-12 sm:px-8 lg:py-16">
+    <section className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#f7f6fa] px-5 py-12 sm:px-8 lg:py-16">
       <div className="pointer-events-none absolute -left-32 top-0 h-80 w-80 rounded-full bg-violet-200/50 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 right-0 h-96 w-96 rounded-full bg-[#f6d9c8]/50 blur-3xl" />
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(45,35,70,0.28)] lg:grid-cols-[1fr_0.94fr]">
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[30px] border border-white bg-white shadow-[0_32px_100px_-42px_rgba(39,33,66,.32)] lg:grid-cols-[1fr_0.94fr]">
         <div className="px-7 py-9 sm:px-12 sm:py-12 lg:px-14 lg:py-14">
-          <div className="mb-9 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-violet-700"><Shapes className="h-4 w-4" /> Your ideas, in good company</div>
-          <h1 className="text-3xl font-semibold tracking-[-0.05em] text-[#292638] sm:text-[2.35rem]">{isSignIn ? "Welcome back." : "Let’s make room."}</h1>
+          <div className="mb-9 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-700"><Shapes className="h-4 w-4" /> SketchFlow workspace</div>
+          <h1 className="text-3xl font-semibold tracking-[-0.055em] text-[#211f2b] sm:text-[2.35rem]">{isSignIn ? "Welcome back." : "Let’s make room."}</h1>
           <p className="mt-2 text-sm leading-6 text-[#827e8a]">{isSignIn ? "Pick up where your team left off." : "Create your account and bring the first idea to life."}</p>
 
           {createdNotice && <div role="status" className="mt-6 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Your account is ready. Log in to continue.</div>}
@@ -82,7 +82,7 @@ export function AuthPage({ isSignIn }: { isSignIn: boolean }) {
           <p className="mt-7 text-center text-sm text-[#85818d]">{isSignIn ? "New to SketchFlow?" : "Already have an account?"}{" "}<Link href={isSignIn ? "/signup" : "/signin"} className="font-semibold text-violet-700 hover:text-violet-900">{isSignIn ? "Create an account" : "Log in"}</Link></p>
         </div>
 
-        <div className="relative hidden min-h-[580px] overflow-hidden bg-[#292638] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="relative hidden min-h-[580px] overflow-hidden bg-[#171620] p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-28 -top-24 h-80 w-80 rounded-full bg-violet-500/30 blur-3xl" /><div className="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-rose-300/15 blur-3xl" />
           <div className="relative"><span className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-200">A canvas for what’s next</span><h2 className="mt-6 max-w-sm text-3xl font-medium leading-tight tracking-[-0.04em]">The best work starts with a thought you can see.</h2><p className="mt-3 max-w-sm text-sm leading-6 text-white/55">Give your ideas space to wander, connect, and become something real.</p></div>
           <div className="relative rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">

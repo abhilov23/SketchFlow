@@ -92,8 +92,8 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
 
   const cursor = cursorMap[selectedTool] || "crosshair"
 
-  const toolbarBg = theme === "dark" ? "bg-zinc-900/95 border-zinc-800" : "bg-white/95 border-[#e9e5ed]"
-  const canvasBg = theme === "dark" ? "bg-zinc-950" : "bg-[#fcfbfd]"
+  const toolbarBg = theme === "dark" ? "bg-[#211f2b]/95 border-white/10" : "bg-white/90 border-[#e8e6ed]"
+  const canvasBg = theme === "dark" ? "bg-[#111017]" : "bg-[#f7f6fa]"
   const shareBoard = async () => {
     await navigator.clipboard?.writeText(window.location.href)
   }
@@ -108,19 +108,19 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
         style={{ cursor }}
       />
 
-      <header className={`fixed left-3 right-3 top-3 z-50 flex h-12 items-center justify-between rounded-2xl border px-3 shadow-sm backdrop-blur-xl sm:left-6 sm:right-6 sm:top-5 sm:px-5 ${toolbarBg}`}>
+      <header className={`fixed left-3 right-3 top-3 z-50 flex h-12 items-center justify-between rounded-2xl border px-3 shadow-[0_10px_35px_-20px_rgba(20,17,32,.4)] backdrop-blur-xl sm:left-6 sm:right-6 sm:top-5 sm:px-5 ${toolbarBg}`}>
         <div className="flex min-w-0 items-center gap-2.5">
           <Link href="/dashboard" aria-label="Back to all boards" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700"><Shapes className="h-4 w-4" /></Link>
-          <span className="truncate text-xs font-semibold text-[#4c4955]">{boardName}</span>
-          <span className="hidden rounded-md bg-[#f6f4f8] px-2 py-1 text-[10px] text-[#9995a1] sm:inline">Collaborative board</span>
+          <span className={`truncate text-xs font-semibold ${theme === "dark" ? "text-white" : "text-[#34313f]"}`}>{boardName}</span>
+          <span className={`hidden rounded-md px-2 py-1 text-[10px] sm:inline ${theme === "dark" ? "bg-white/5 text-white/45" : "bg-[#f5f3f8] text-[#898591]"}`}>Collaborative board</span>
         </div>
-        <button type="button" onClick={shareBoard} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#262333] px-3 text-[11px] font-semibold text-white transition hover:bg-violet-700"><Share2 size={13} /> Share</button>
+        <button type="button" onClick={shareBoard} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-[11px] font-semibold text-white transition hover:bg-violet-800"><Share2 size={13} /> Share</button>
       </header>
 
       <div className={`fixed bottom-4 left-1/2 z-50 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-x-auto rounded-2xl border shadow-lg backdrop-blur-xl sm:bottom-6 ${toolbarBg}`}>
         <div className="flex items-center gap-1 px-2 py-1.5">
           {toolGroups.map((group, gi) => (
-            <div key={group.label} className={`flex items-center gap-0.5 ${gi < toolGroups.length - 1 ? "mr-1 border-r border-[#eeebf1] pr-1 sm:mr-2 sm:pr-2" : ""}`}>
+            <div key={group.label} className={`flex items-center gap-0.5 ${gi < toolGroups.length - 1 ? `mr-1 border-r pr-1 sm:mr-2 sm:pr-2 ${theme === "dark" ? "border-white/10" : "border-[#eeebf1]"}` : ""}`}>
               {group.tools.map(t => (
                 <ToolButton
                   key={t.id}
@@ -133,11 +133,11 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
               ))}
             </div>
           ))}
-          <div className="ml-1 flex items-center gap-0.5 border-l border-[#eeebf1] pl-1 sm:ml-2 sm:pl-2">
+          <div className={`ml-1 flex items-center gap-0.5 border-l pl-1 sm:ml-2 sm:pl-2 ${theme === "dark" ? "border-white/10" : "border-[#eeebf1]"}`}>
             <ToolButton icon={<ZoomIn size={18} />} label="Zoom in" onClick={() => handleZoom(true)} theme={theme} />
             <ToolButton icon={<ZoomOut size={18} />} label="Zoom out" onClick={() => handleZoom(false)} theme={theme} />
           </div>
-          <div className="ml-1 flex items-center gap-0.5 border-l border-[#eeebf1] pl-1 sm:ml-2 sm:pl-2">
+          <div className={`ml-1 flex items-center gap-0.5 border-l pl-1 sm:ml-2 sm:pl-2 ${theme === "dark" ? "border-white/10" : "border-[#eeebf1]"}`}>
             <ToolButton icon={<Undo size={18} />} label="Undo"
               onClick={() => drawInstanceRef.current?.performUndo?.()} theme={theme} />
             <ToolButton icon={<Download size={18} />} label="Export PNG"
@@ -148,7 +148,7 @@ export function Canvas({ roomId, boardName, socket }: { roomId: string; boardNam
         </div>
       </div>
 
-      <div className={`fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] shadow-sm backdrop-blur-md sm:bottom-6 sm:right-6 ${toolbarBg} ${theme === "dark" ? "text-zinc-300" : "text-[#898591]"}`}>
+      <div className={`fixed right-4 top-[4.25rem] z-40 flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] shadow-sm backdrop-blur-md sm:right-6 sm:top-[4.75rem] ${toolbarBg} ${theme === "dark" ? "text-zinc-300" : "text-[#777481]"}`}>
         <ZoomIn className="h-3.5 w-3.5" />
         <span>{Math.round(zoom * 100)}%</span>
       </div>
@@ -165,7 +165,7 @@ function ToolButton({ active, icon, label, onClick, disabled, theme }: {
         className={`flex items-center justify-center w-9 h-9 rounded-xl text-sm transition-all ${
           disabled ? "opacity-25 cursor-not-allowed" :
           active
-            ? theme === "dark" ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20" : "bg-violet-100 text-violet-700"
+            ? theme === "dark" ? "bg-violet-500/20 text-violet-200 shadow-sm shadow-violet-500/20" : "bg-violet-100 text-violet-700"
             : theme === "dark"
               ? "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
               : "text-[#817d89] hover:text-violet-700 hover:bg-[#f5f2fa]"
@@ -175,7 +175,7 @@ function ToolButton({ active, icon, label, onClick, disabled, theme }: {
       >
         {icon}
       </button>
-      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-popover text-popover-foreground border border-border shadow-md z-50">
+      <div className={`absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs opacity-0 shadow-md transition-opacity pointer-events-none group-hover:opacity-100 ${theme === "dark" ? "border-white/10 bg-[#2b2935] text-white" : "border-[#ebe9ef] bg-white text-[#514d5a]"}`}>
         {label}
       </div>
     </div>
