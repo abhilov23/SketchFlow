@@ -5,38 +5,20 @@ import { Shapes } from "lucide-react"
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-[#eeebf1] bg-[#fbfaf8]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-[70px] max-w-7xl items-center justify-between px-6 sm:px-10 lg:px-12">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Shapes className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-bold">SketchFlow</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#292638] text-white shadow-sm"><Shapes className="h-[18px] w-[18px]" /></div>
+          <span className="text-[17px] font-semibold tracking-[-0.04em] text-[#292638]">SketchFlow</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Features
-          </Link>
-          <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            How It Works
-          </Link>
-          <Link href="/#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Testimonials
-          </Link>
+        <nav className="hidden items-center gap-8 md:flex">
+          <Link href="/#features" className="text-[13px] font-medium text-[#77737f] transition hover:text-violet-700">Why SketchFlow</Link>
+          <Link href="/#how-it-works" className="text-[13px] font-medium text-[#77737f] transition hover:text-violet-700">How it works</Link>
+          <Link href="/watch-demo" className="text-[13px] font-medium text-[#77737f] transition hover:text-violet-700">Explore</Link>
         </nav>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/signin"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Log In
-          </Link>
-          <Link
-            href="/signup"
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Try Now
-          </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/signin" className="hidden text-[13px] font-semibold text-[#56535f] transition hover:text-violet-700 sm:inline-flex">Log in</Link>
+          <Link href="/signup" className="inline-flex h-10 items-center justify-center rounded-xl bg-[#292638] px-4 text-[13px] font-semibold text-white transition hover:bg-violet-700">Get started</Link>
         </div>
       </div>
     </header>

@@ -1,181 +1,42 @@
 import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs"
-import { Play, ChevronLeft, Layers, Palette, Users, Globe, Sparkles, ArrowRight, Monitor, Move, Eraser } from "lucide-react"
+import { ArrowRight, ArrowUpRight, Circle, Download, Hand, MousePointer2, Pencil, RectangleHorizontal, Shapes, Share2, Sparkles, Trash2 } from "lucide-react"
 
-const highlights = [
-  { icon: <Move className="h-5 w-5" />, title: "Infinite Canvas", desc: "Pan and zoom across an endless canvas. No boundaries, no limits — just your ideas." },
-  { icon: <Palette className="h-5 w-5" />, title: "Drawing Tools", desc: "Pencil, shapes, text, and eraser — everything you need to sketch and annotate." },
-  { icon: <Users className="h-5 w-5" />, title: "Real-time Collaboration", desc: "Invite team members to edit in real-time with instant sync across all users." },
-  { icon: <Globe className="h-5 w-5" />, title: "Cross-platform", desc: "Works seamlessly on desktop, tablet, and mobile browsers. No app installation needed." },
-  { icon: <Monitor className="h-5 w-5" />, title: "PNG Export", desc: "Export your canvas as a PNG image with a single click. Perfect for sharing." },
-  { icon: <Eraser className="h-5 w-5" />, title: "Lightweight & Fast", desc: "Optimized performance that works smoothly on any device. No heavy downloads." },
+const tools = [
+  { icon: MousePointer2, name: "Select", shortcut: "V" },
+  { icon: Hand, name: "Move canvas", shortcut: "H" },
+  { icon: Pencil, name: "Freehand", shortcut: "P" },
+  { icon: RectangleHorizontal, name: "Rectangle", shortcut: "R" },
+  { icon: Circle, name: "Ellipse", shortcut: "O" },
+  { icon: ArrowUpRight, name: "Arrow", shortcut: "A" },
+  { icon: Trash2, name: "Eraser", shortcut: "E" },
 ]
 
-const tutorials = [
-  { num: 1, title: "Create an Account", desc: "Sign up for free in under 30 seconds with your email." },
-  { num: 2, title: "Create a New Board", desc: "Click 'New Board' from your dashboard to create a fresh canvas." },
-  { num: 3, title: "Choose Your Tools", desc: "Use the toolbar to select shapes, freehand pencil, text tool, or eraser." },
-  { num: 4, title: "Invite Collaborators", desc: "Share the board link with your team and watch their changes appear in real-time." },
-]
-
-const faqs = [
-  { q: "Is SketchFlow free to use?", a: "Yes! SketchFlow is completely free with unlimited boards and real-time collaboration." },
-  { q: "Can I export my drawings?", a: "Yes. You can export your canvas as a PNG image with a single click." },
-  { q: "Do I need to create an account?", a: "Yes, you'll need a free account to save and share your boards. It takes less than a minute to sign up." },
-  { q: "Is there a mobile app?", a: "SketchFlow is fully responsive and works great on mobile browsers." },
-  { q: "Can I use SketchFlow offline?", a: "Currently, SketchFlow requires an internet connection for real-time collaboration." },
+const steps = [
+  { number: "01", title: "Create your space", description: "Sign up, open your dashboard, and give a new board a name that gets the idea started." },
+  { number: "02", title: "Put the idea down", description: "Choose a tool, pick a color, and sketch a shape, flow, or thought right onto the canvas." },
+  { number: "03", title: "Take it with you", description: "Export the current canvas as an SVG or copy the board link from your dashboard." },
 ]
 
 export default function WatchDemoPage() {
   return (
-    <div className="py-12 md:py-20">
-      <div className="container max-w-6xl">
-        <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ChevronLeft className="h-4 w-4" /> Back to Home
-        </Link>
+    <div className="bg-[#fbfaf8] text-[#292638]">
+      <section className="mx-auto max-w-7xl px-6 pb-12 pt-14 sm:px-10 lg:px-12 lg:pb-16 lg:pt-20">
+        <div className="mx-auto max-w-3xl text-center"><span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-3.5 py-2 text-xs font-semibold text-violet-700"><Sparkles className="h-3.5 w-3.5"/> A quick tour</span><h1 className="mt-6 text-4xl font-semibold tracking-[-0.055em] sm:text-5xl lg:text-6xl">From blank canvas to <span className="text-violet-600">first spark.</span></h1><p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#77737f] sm:text-lg">SketchFlow gives you a simple place to sketch an idea, move it around, and export what you’ve made.</p></div>
+      </section>
 
-        {/* Header */}
-        <div className="mb-14 text-center">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-sm shadow-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">Overview</span>
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-            See SketchFlow in Action
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Watch how teams use SketchFlow to collaborate in real-time, create stunning diagrams, and bring ideas to life.
-          </p>
-        </div>
-
-        {/* Video placeholder */}
-        <div className="mb-16 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-          <div className="flex items-center justify-between border-b border-border bg-muted/50 px-5 py-3.5">
-            <div className="flex items-center gap-2">
-              <div className="h-3.5 w-3.5 rounded-full bg-destructive/80" />
-              <div className="h-3.5 w-3.5 rounded-full bg-amber-500/80" />
-              <div className="h-3.5 w-3.5 rounded-full bg-green-500/80" />
-            </div>
-            <span className="hidden text-xs text-muted-foreground sm:block">demo.mp4</span>
-            <div className="flex items-center gap-1.5">
-              <Play className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
-            <div className="group cursor-pointer text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 transition-all group-hover:bg-primary group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/25">
-                <Play className="h-10 w-10 pl-0.5 text-primary transition-all group-hover:text-primary-foreground" />
-              </div>
-              <p className="text-lg font-medium">Watch the demo video</p>
-              <p className="text-sm text-muted-foreground">2 min 34 sec</p>
-            </div>
+      <section className="mx-auto max-w-7xl px-6 pb-16 sm:px-10 lg:px-12">
+        <div className="overflow-hidden rounded-[24px] border border-[#e9e5ed] bg-white shadow-[0_28px_80px_-32px_rgba(55,43,94,0.23)]">
+          <div className="flex h-12 items-center justify-between border-b border-[#f0edf2] px-4 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-700"><Shapes className="h-4 w-4"/></span><span className="text-xs font-semibold">A quick look around</span></div><span className="hidden items-center gap-1.5 text-[10px] text-[#93909b] sm:flex"><Download className="h-3.5 w-3.5"/> SVG export available</span></div>
+          <div className="grid min-h-[360px] lg:grid-cols-[1fr_260px]">
+            <div className="relative min-h-[340px] overflow-hidden bg-[#fcfbfd]" style={{ backgroundImage: "radial-gradient(#d9d4e2 0.8px, transparent 0.8px)", backgroundSize: "18px 18px" }}><div className="absolute left-[12%] top-[25%] rotate-[-4deg] rounded-xl border border-[#eed6ac] bg-[#fff4d8] px-5 py-4 shadow-md"><p className="text-xs font-semibold text-[#57472b]">Start with a question</p><p className="mt-1 text-[10px] text-[#8d7b58]">What are we making?</p></div><svg className="absolute left-[34%] top-[27%] h-[110px] w-[22%]" viewBox="0 0 160 110"><path d="M5 18 C65 5 95 80 145 82" fill="none" stroke="#8a7ce0" strokeWidth="2.5" strokeDasharray="5 5"/><path d="m136 75 10 8-11 4" fill="none" stroke="#8a7ce0" strokeWidth="2.5"/></svg><div className="absolute left-[45%] top-[43%] flex h-[76px] w-[138px] items-center justify-center rounded-[20px] border-2 border-violet-300 bg-violet-50 text-center text-xs font-semibold leading-5 text-violet-800">Shape the<br/>first step</div><div className="absolute right-[10%] top-[24%] rotate-3 rounded-xl border border-[#cce5d6] bg-[#e9f8ef] px-5 py-4 shadow-md"><p className="text-xs font-semibold text-[#385f47]">Then try this</p><p className="mt-1 text-[10px] text-[#53725e]">Make it feel simple</p></div><div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-[#e9e5ed] bg-white p-1.5 shadow-lg">{tools.slice(0, 6).map(({ icon: Icon, name }, i) => <span key={name} className={`flex h-8 w-8 items-center justify-center rounded-lg ${i === 2 ? "bg-violet-100 text-violet-700" : "text-[#817d89]"}`}><Icon className="h-4 w-4"/></span>)}</div></div>
+            <aside className="border-t border-[#f0edf2] bg-white p-5 lg:border-l lg:border-t-0"><h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#aaa6b0]">Canvas tools</h2><div className="mt-4 space-y-2">{tools.map(({ icon: Icon, name, shortcut }) => <div key={name} className="flex items-center justify-between rounded-lg px-2 py-2 text-xs text-[#5f5b67]"><span className="flex items-center gap-2.5"><Icon className="h-4 w-4 text-violet-600"/>{name}</span><kbd className="rounded border border-[#eeebf1] bg-[#fdfcfe] px-1.5 py-0.5 text-[10px] text-[#9995a1]">{shortcut}</kbd></div>)}</div><div className="mt-5 rounded-xl bg-[#f8f6fb] p-3 text-[11px] leading-5 text-[#85818d]"><span className="font-semibold text-[#5f596e]">Tip</span><br/>Hold Space to move around. Scroll to zoom in and out.</div></aside>
           </div>
         </div>
+      </section>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="mb-16">
-          <TabsList className="mb-10 justify-center">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="features">Key Features</TabsTrigger>
-            <TabsTrigger value="tutorial">Tutorial</TabsTrigger>
-            <TabsTrigger value="faq">FAQ</TabsTrigger>
-          </TabsList>
+      <section className="border-y border-[#eeebf1] bg-white px-6 py-16 sm:px-10 lg:px-12 lg:py-20"><div className="mx-auto max-w-7xl"><div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">The first few minutes</p><h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Three steps to get it out of your head.</h2></div><div className="mt-9 grid gap-4 md:grid-cols-3">{steps.map((step) => <article key={step.number} className="rounded-2xl border border-[#eeebf1] bg-[#fdfcfe] p-6"><span className="text-xs font-bold tracking-widest text-violet-500">{step.number}</span><h3 className="mt-7 text-base font-semibold">{step.title}</h3><p className="mt-2 text-sm leading-6 text-[#77737f]">{step.description}</p></article>)}</div></div></section>
 
-          <TabsContent value="overview" className="space-y-8">
-            <div className="rounded-2xl border border-border bg-card p-8 shadow-sm md:p-10">
-              <h2 className="mb-4 text-2xl font-bold md:text-3xl">What is SketchFlow?</h2>
-              <p className="mb-4 leading-relaxed text-muted-foreground">
-                SketchFlow is a real-time collaborative whiteboard tool designed for teams who need to sketch, diagram, and
-                brainstorm together. Whether you&apos;re a designer mapping out user flows, a developer planning architecture,
-                or a product manager facilitating a workshop, SketchFlow provides everything you need.
-              </p>
-              <p className="mb-6 leading-relaxed text-muted-foreground">
-                Unlike traditional whiteboarding tools, SketchFlow is built for speed and simplicity. You can start drawing
-                instantly without any setup, and your changes are synced across all connected users in real-time.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  { stat: "50K+", label: "Active boards" },
-                  { stat: "10K+", label: "Teams using it" },
-                  { stat: "4.9/5", label: "Average rating" },
-                ].map((s, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-                    <div className="text-2xl font-bold text-primary">{s.stat}</div>
-                    <div className="text-sm text-muted-foreground">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="features" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {highlights.map((h, i) => (
-              <div
-                key={i}
-                className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all group-hover:bg-primary group-hover:text-primary-foreground">
-                  {h.icon}
-                </div>
-                <h3 className="mb-2 text-lg font-semibold">{h.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{h.desc}</p>
-              </div>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="tutorial" className="space-y-6">
-            <div className="rounded-2xl border border-border bg-card p-8 shadow-sm md:p-10">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground">
-                <Play className="h-3.5 w-3.5" /> Getting Started
-              </div>
-              <h2 className="mb-8 text-2xl font-bold md:text-3xl">Start collaborating in 4 simple steps</h2>
-              <div className="grid gap-6 md:grid-cols-2">
-                {tutorials.map((s) => (
-                  <div key={s.num} className="flex gap-5 rounded-xl border border-border bg-muted/30 p-5 transition-all hover:border-primary/30">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
-                      {s.num}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{s.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="faq" className="space-y-4">
-            {faqs.map((f, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md md:p-7">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <span className="text-sm font-bold">?</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{f.q}</h3>
-                    <p className="mt-2 leading-relaxed text-muted-foreground">{f.a}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-        </Tabs>
-
-        {/* Bottom CTA */}
-        <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-primary/10 p-8 text-center shadow-sm md:p-12">
-          <h2 className="text-2xl font-bold md:text-3xl">Ready to give it a try?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Start sketching, diagramming, and collaborating in real-time. No credit card required.
-          </p>
-          <Link
-            href="/signup"
-            className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
-          >
-            Get Started Free <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
+      <section className="mx-auto max-w-7xl px-6 py-16 sm:px-10 lg:px-12 lg:py-20"><div className="flex flex-col items-start justify-between gap-6 rounded-[24px] bg-[#292638] p-7 text-white sm:p-10 lg:flex-row lg:items-center"><div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-violet-200"><Share2 className="h-3.5 w-3.5"/> Your turn</p><h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Start with whatever’s on your mind.</h2></div><Link href="/signup" className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#292638] transition hover:bg-violet-100">Create your first board <ArrowRight className="h-4 w-4"/></Link></div></section>
     </div>
   )
 }
