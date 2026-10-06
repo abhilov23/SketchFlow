@@ -3,14 +3,15 @@ import { ChevronLeft } from "lucide-react"
 
 export default function PrivacyPage() {
   return (
-    <div className="py-12 md:py-16">
-      <div className="container max-w-3xl">
-        <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+    <div className="bg-[#f7f6fa] px-5 py-12 sm:px-8 md:py-16">
+      <div className="mx-auto max-w-3xl rounded-[28px] border border-[#ebe9ef] bg-white p-7 shadow-[0_24px_70px_-50px_rgba(39,33,66,.3)] sm:p-10 md:p-12">
+        <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-[#777481] transition-colors hover:text-violet-700">
           <ChevronLeft className="h-4 w-4" /> Back to Home
         </Link>
-        <h1 className="mb-2 text-3xl font-bold tracking-tight md:text-4xl">Privacy Policy</h1>
-        <p className="mb-8 text-sm text-muted-foreground">Last updated: March 2025</p>
-        <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6 text-muted-foreground">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-violet-700">SketchFlow · Legal</p>
+        <h1 className="mb-2 text-3xl font-semibold tracking-[-0.05em] text-[#211f2b] md:text-4xl">Privacy Policy</h1>
+        <p className="mb-8 text-sm text-[#96929e]">Last updated: March 2025</p>
+        <div className="max-w-none space-y-6 text-sm leading-7 text-[#696673] [&_h2]:pt-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-[-0.02em] [&_h2]:text-[#211f2b]">
           <p>Your privacy is important to us. This policy outlines how SketchFlow collects, uses, and protects your personal data.</p>
           <h2 className="text-xl font-semibold text-foreground">Information We Collect</h2>
           <p>We collect information you provide when creating an account, such as your name and email address. We also collect usage data to improve our service.</p>
