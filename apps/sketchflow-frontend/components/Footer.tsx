@@ -3,47 +3,16 @@ import { Shapes } from "lucide-react"
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/40 bg-muted/30">
-      <div className="container py-8 md:py-12">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Shapes className="h-4 w-4" />
-              </div>
-              <span className="text-sm font-bold">SketchFlow</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Collaborative whiteboarding for teams.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Product</h4>
-            <ul className="space-y-2">
-              <li><Link href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link></li>
-              <li><Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</Link></li>
-              <li><Link href="/watch-demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Watch Demo</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Legal</h4>
-            <ul className="space-y-2">
-              <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Account</h4>
-            <ul className="space-y-2">
-              <li><Link href="/signin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign In</Link></li>
-              <li><Link href="/signup" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link></li>
-            </ul>
-          </div>
+    <footer className="border-t border-[#eeebf1] bg-white">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-10 sm:px-10 md:grid-cols-[1.5fr_1fr_1fr] lg:px-12">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#292638] text-white"><Shapes className="h-4 w-4" /></span><span className="text-sm font-semibold tracking-tight text-[#292638]">SketchFlow</span></Link>
+          <p className="mt-3 max-w-xs text-sm leading-6 text-[#85818d]">A shared canvas for the early, messy, brilliant part of making something together.</p>
         </div>
-        <div className="mt-8 border-t border-border/40 pt-6 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} SketchFlow. All rights reserved.
-        </div>
+        <div><h4 className="text-xs font-bold uppercase tracking-[0.14em] text-[#aaa6b0]">Explore</h4><div className="mt-4 flex flex-col gap-3"><Link href="/#features" className="text-sm text-[#696572] hover:text-violet-700">Why SketchFlow</Link><Link href="/#how-it-works" className="text-sm text-[#696572] hover:text-violet-700">How it works</Link><Link href="/watch-demo" className="text-sm text-[#696572] hover:text-violet-700">Product guide</Link></div></div>
+        <div><h4 className="text-xs font-bold uppercase tracking-[0.14em] text-[#aaa6b0]">Your space</h4><div className="mt-4 flex flex-col gap-3"><Link href="/signin" className="text-sm text-[#696572] hover:text-violet-700">Log in</Link><Link href="/signup" className="text-sm text-[#696572] hover:text-violet-700">Create account</Link><Link href="/privacy" className="text-sm text-[#696572] hover:text-violet-700">Privacy</Link><Link href="/terms" className="text-sm text-[#696572] hover:text-violet-700">Terms</Link></div></div>
       </div>
+      <div className="border-t border-[#f0edf2]"><div className="mx-auto max-w-7xl px-6 py-4 text-xs text-[#aaa6b0] sm:px-10 lg:px-12">© {new Date().getFullYear()} SketchFlow. Make room for good ideas.</div></div>
     </footer>
   )
 }

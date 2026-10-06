@@ -28,7 +28,8 @@ app.post("/signup", async (req, res) => {
                 email: parsedData.data?.username,
                 // TODO: Hash the pw
                 password: parsedData.data.password,
-                name: parsedData.data.name
+                name: parsedData.data.name,
+                photo: ""
             }
         })
         res.json({
@@ -129,27 +130,25 @@ app.get("/rooms", middleware, async (req, res) => {
 
 
 app.delete("/room/:slug", middleware, async (req, res) => {
-  const {slug} = req.params;
-
-  //@ts-ignore
+  const { slug } = req.params;
+  // @ts-ignore
   const userId = req.userId;
 
-   try {
-    const result = await prismaClient.room.deleteMany({
-        where: {
-            slug,
-            adminId: userId
-        }
-    })
-    if (result.count === 0) {
+  try {
+    const room = await prismaClient.room.findFirst({ where: { slug, adminId: userId } });
+    if (!room) {
       res.status(404).json({ message: "Room not found or not authorized" });
       return;
     }
-    res.status(200).json({ message: "Room deleted successfully" });
-   } catch (error) {
-    res.status(500).json({ message: "Failed to delete room" });
-   }
 
+    await prismaClient.$transaction([
+      prismaClient.chat.deleteMany({ where: { roomId: room.id } }),
+      prismaClient.room.delete({ where: { id: room.id } }),
+    ]);
+    res.status(200).json({ message: "Room deleted successfully" });
+  } catch {
+    res.status(500).json({ message: "Failed to delete room" });
+  }
 })
 
 
@@ -165,9 +164,8 @@ app.get("/chats/:roomId", async (req, res) => {
                 roomId: roomId
             },
             orderBy: {
-                id: "desc"
-            },
-            take: 50
+                id: "asc"
+            }
         });
 
         res.json({

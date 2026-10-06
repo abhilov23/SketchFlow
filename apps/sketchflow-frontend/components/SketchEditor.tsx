@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type React from "react"
+import Link from "next/link"
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -57,7 +58,7 @@ const colors = [
 
 const initialStyle: Style = { color: colors[0].value, strokeWidth: 2, dashed: false }
 
-export function SketchEditor() {
+export function SketchEditor({ boardId }: { boardId: string }) {
   const [activeTool, setActiveTool] = useState<Tool>("draw")
   const [items, setItems] = useState<DrawItem[]>([])
   const [draft, setDraft] = useState<DrawItem | null>(null)
@@ -214,11 +215,11 @@ export function SketchEditor() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate text-[15px] font-semibold tracking-[-0.03em]">SketchFlow</span>
-              <button className="hidden items-center gap-1 rounded-lg px-1.5 py-1 text-xs text-[#9091a2] transition-all duration-200 hover:bg-[#f1f0ff] hover:text-[#7867f5] sm:flex" aria-label="Project options">
-                Untitled board <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              <span className="hidden max-w-[180px] truncate rounded-lg px-1.5 py-1 text-xs text-[#686a7b] sm:inline-flex" title={boardId}>
+                {boardId} <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-[#a0a1ae]" />
+              </span>
             </div>
-            <span className="hidden text-[10px] text-[#a0a1ae] sm:block">All changes saved</span>
+            <span className="hidden text-[10px] text-[#a0a1ae] sm:block">Board session</span>
           </div>
         </div>
 
@@ -232,11 +233,7 @@ export function SketchEditor() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden items-center -space-x-2 sm:flex" aria-label="Two collaborators online">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#ffe1d8] text-[9px] font-semibold text-[#b45b4b]">AL</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#dce8ff] text-[9px] font-semibold text-[#4f70b2]">MK</span>
-            <span className="ml-2 pl-2 text-[10px] text-[#9293a2]">2 online</span>
-          </div>
+          <Link href="/dashboard" className="hidden h-9 items-center rounded-xl px-3 text-xs font-semibold text-[#77798b] transition hover:bg-[#f4f2ff] hover:text-[#7867f5] sm:inline-flex">All boards</Link>
           <button onClick={exportSvg} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#7867f5] px-3.5 text-xs font-semibold text-white shadow-md shadow-violet-200 transition-all duration-200 hover:bg-[#6957eb] hover:shadow-lg active:scale-[0.98] sm:px-4 sm:text-[13px]">
             {saved ? <Check className="h-4 w-4" /> : <ArrowDownToLine className="h-4 w-4" />}
             <span className="hidden sm:inline">{saved ? "Exported" : "Export"}</span>

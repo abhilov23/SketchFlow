@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { initDraw } from "@/app/draw"
+import Link from "next/link"
+import { Shapes } from "lucide-react"
 import {
   Pencil, Minus, RectangleHorizontalIcon, Circle, Diamond, Type, Eraser,
   ZoomIn, ZoomOut, Undo, Sun, Moon, Download,
@@ -33,12 +35,12 @@ const toolGroups = [
   },
 ]
 
-export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }) {
+export function Canvas({ roomId, boardName, socket }: { roomId: string; boardName: string; socket: WebSocket }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [selectedTool, setSelectedTool] = useState<Shape>("circle")
   const [zoom, setZoom] = useState(1)
   const drawInstanceRef = useRef<any>(null)
-  const [theme, setTheme] = useState<Theme>("dark")
+  const [theme, setTheme] = useState<Theme>("light")
 
   useEffect(() => {
     (window as any).selectedTool = selectedTool
@@ -102,6 +104,11 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
         className="block"
         style={{ cursor }}
       />
+
+      <Link href="/dashboard" className={`fixed left-4 top-4 z-50 flex h-11 max-w-[calc(50%-1rem)] items-center gap-2.5 rounded-xl border px-3 shadow-lg backdrop-blur-md sm:left-6 ${toolbarBg}`}>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700"><Shapes className="h-4 w-4" /></span>
+        <span className="min-w-0 text-left"><span className="block text-[10px] text-muted-foreground">All boards</span><span className="block truncate text-xs font-semibold">{boardName}</span></span>
+      </Link>
 
       {/* Floating toolbar */}
       <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-2xl border shadow-2xl backdrop-blur-md ${toolbarBg}`}>
