@@ -1,69 +1,177 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Loader2, Shapes } from "lucide-react"
-import { HTTP_BACKEND, WS_URL } from "@/app/config"
-import { Canvas } from "./Canvas"
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2, Shapes } from "lucide-react";
+import { HTTP_BACKEND, WS_URL, authHeaders } from "@/app/config";
+import { Canvas } from "./Canvas";
 
-type Room = { id: number; slug: string }
-type RoomState = { id: string; slug: string }
+type RoomState = { id: string; slug: string; isOwner: boolean };
 
 export function RoomCanvas({ roomSlug }: { roomSlug: string }) {
-  const router = useRouter()
-  const [room, setRoom] = useState<RoomState | null>(null)
-  const [socket, setSocket] = useState<WebSocket | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [room, setRoom] = useState<RoomState | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const needsSignInRef = useRef(false);
+
+  const goToSignIn = useCallback(() => {
+    needsSignInRef.current = true;
+    localStorage.removeItem("token");
+    router.push("/signin");
+  }, [router]);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
+
     const loadRoom = async () => {
-      try {
-        const response = await fetch(`${HTTP_BACKEND}/room/${encodeURIComponent(roomSlug)}`)
-        const data: { room: Room | null } = await response.json()
-        if (!response.ok || !data.room) throw new Error("We couldn’t find that board.")
-        if (!cancelled) setRoom({ id: String(data.room.id), slug: data.room.slug })
-      } catch (loadError) {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "We couldn’t load that board.")
+      const token = localStorage.getItem("token");
+      if (!token) {
+        needsSignInRef.current = true;
+        setError("Sign in to open this board.");
+        return;
       }
-    }
-    loadRoom()
-    return () => { cancelled = true }
-  }, [roomSlug])
+
+      try {
+        const headers = authHeaders(token);
+        const lookup = await fetch(`${HTTP_BACKEND}/room/${encodeURIComponent(roomSlug)}`, { headers });
+
+        if (lookup.status === 401) {
+          if (!cancelled) goToSignIn();
+          return;
+        }
+
+        const lookupData: { room: RoomState | null; message?: string } = await lookup.json();
+
+        if (lookup.status === 404) {
+          const join = await fetch(`${HTTP_BACKEND}/room/${encodeURIComponent(roomSlug)}/join`, {
+            method: "POST",
+            headers,
+          });
+
+          if (join.status === 401) {
+            if (!cancelled) goToSignIn();
+            return;
+          }
+
+          const joinData: { room?: RoomState; message?: string } = await join.json();
+          if (!join.ok || !joinData.room) {
+            if (!cancelled) setError(joinData.message ?? "We couldn’t find that board.");
+            return;
+          }
+
+          if (!cancelled) setRoom({ ...joinData.room, id: String(joinData.room.id) });
+          return;
+        }
+
+        if (!lookup.ok || !lookupData.room) {
+          if (!cancelled) setError(lookupData.message ?? "We couldn’t find that board.");
+          return;
+        }
+
+        if (!cancelled) setRoom({ ...lookupData.room, id: String(lookupData.room.id) });
+      } catch {
+        if (!cancelled) setError("We couldn’t reach the server. Check your connection and try again.");
+      }
+    };
+
+    loadRoom();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomSlug, goToSignIn]);
 
   useEffect(() => {
-    if (!room) return
-    const token = localStorage.getItem("token")
+    if (!room) return;
+
+    const token = localStorage.getItem("token");
     if (!token) {
-      setError("Sign in to open this board.")
-      return
+      setError("Sign in to open this board.");
+      return;
     }
 
-    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`)
-    let closing = false
-    ws.onopen = () => setSocket(ws)
-    ws.onerror = () => setError("We couldn’t connect to the board right now.")
+    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+    let closing = false;
+    let settled = false;
+
+    ws.onopen = () => {
+      if (!closing) setSocket(ws);
+    };
+
+    ws.onerror = () => {
+      if (settled || closing) return;
+      settled = true;
+      setSocket(null);
+      setError("We couldn’t connect to the board right now.");
+    };
+
     ws.onclose = () => {
-      if (!closing) {
-        setSocket(null)
-        setError("Connection to this board ended. Reload to reconnect.")
-      }
-    }
+      if (closing || settled) return;
+      settled = true;
+      setSocket(null);
+      setError("Connection to this board ended. Reload to reconnect.");
+    };
 
     return () => {
-      closing = true
-      ws.close()
-      setSocket(null)
-    }
-  }, [room])
+      closing = true;
+      ws.close();
+      setSocket(null);
+    };
+  }, [room]);
 
   if (error) {
-    const needsSignIn = error.includes("Sign in")
-    return <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f6fa] px-5"><div className="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full bg-violet-200/50 blur-[90px]" /><div className="relative w-full max-w-md rounded-[28px] border border-white bg-white p-8 text-center shadow-[0_32px_90px_-45px_rgba(39,33,66,.34)] sm:p-10"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Shapes className="h-5 w-5" /></div><h1 className="mt-5 text-lg font-semibold tracking-tight text-[#211f2b]">{error}</h1><p className="mt-2 text-sm leading-6 text-[#777481]">{needsSignIn ? "Your boards are available after you sign in." : "Check the link or return to your board library."}</p><div className="mt-6 flex justify-center gap-3"><Link href={needsSignIn ? "/signin" : "/dashboard"} className="inline-flex h-10 items-center rounded-xl bg-violet-700 px-4 text-sm font-semibold text-white transition hover:bg-violet-800">{needsSignIn ? "Sign in" : "All boards"}</Link>{needsSignIn && <button onClick={() => router.push("/signup")} className="h-10 rounded-xl border border-[#e9e6ed] px-4 text-sm font-semibold text-[#5b5764] transition hover:bg-[#f7f6fa]">Create account</button>}</div></div></main>
+    const needsSignIn = needsSignInRef.current || error.includes("Sign in");
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f6fa] px-5">
+        <div className="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full bg-violet-200/50 blur-[90px]" />
+        <div className="relative w-full max-w-md rounded-[28px] border border-white bg-white p-8 text-center shadow-[0_32px_90px_-45px_rgba(39,33,66,.34)] sm:p-10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+            <Shapes className="h-5 w-5" />
+          </div>
+          <h1 className="mt-5 text-lg font-semibold tracking-tight text-[#211f2b]">{error}</h1>
+          <p className="mt-2 text-sm leading-6 text-[#777481]">
+            {needsSignIn
+              ? "Your boards are available after you sign in."
+              : "Check the link or return to your board library."}
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link
+              href={needsSignIn ? "/signin" : "/dashboard"}
+              className="inline-flex h-10 items-center rounded-xl bg-violet-700 px-4 text-sm font-semibold text-white transition hover:bg-violet-800"
+            >
+              {needsSignIn ? "Sign in" : "All boards"}
+            </Link>
+            {needsSignIn && (
+              <button
+                onClick={() => router.push("/signup")}
+                className="h-10 rounded-xl border border-[#e9e6ed] px-4 text-sm font-semibold text-[#5b5764] transition hover:bg-[#f7f6fa]"
+              >
+                Create account
+              </button>
+            )}
+          </div>
+        </div>
+      </main>
+    );
   }
 
-  if (!room || !socket) return <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f6fa]"><div className="pointer-events-none absolute inset-0 opacity-50" style={{ backgroundImage: "radial-gradient(#d9d4e2 0.8px, transparent 0.8px)", backgroundSize: "20px 20px" }} /><div className="relative flex items-center gap-3 rounded-2xl border border-white bg-white/90 px-5 py-4 text-sm text-[#696673] shadow-lg shadow-[#292638]/5"><Loader2 className="h-5 w-5 animate-spin text-violet-700" />{room ? "Connecting to your board…" : "Opening your board…"}</div></main>
+  if (!room || !socket)
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f6fa]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: "radial-gradient(#d9d4e2 0.8px, transparent 0.8px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+        <div className="relative flex items-center gap-3 rounded-2xl border border-white bg-white/90 px-5 py-4 text-sm text-[#696673] shadow-lg shadow-[#292638]/5">
+          <Loader2 className="h-5 w-5 animate-spin text-violet-700" />
+          {room ? "Connecting to your board…" : "Opening your board…"}
+        </div>
+      </main>
+    );
 
-  return <Canvas roomId={room.id} boardName={room.slug} socket={socket} />
+  return <Canvas roomId={room.id} boardName={room.slug} socket={socket} />;
 }

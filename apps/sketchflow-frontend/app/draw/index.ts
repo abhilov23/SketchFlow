@@ -1,45 +1,49 @@
-import axios from 'axios';
-import { HTTP_BACKEND } from '../config';
+import { HTTP_BACKEND, authHeaders } from "../config";
 
-// Define tool types
-const VALID_TOOLS = ['rect', 'circle', 'line', 'pencil', 'diamond', 'eraser', 'text'] as const;
-type DrawingTool = typeof VALID_TOOLS[number];
+const VALID_TOOLS = ["rect", "circle", "line", "pencil", "diamond", "eraser", "text"] as const;
+type DrawingTool = (typeof VALID_TOOLS)[number];
 
-type Shape = 
-  | { type: 'rect'; x: number; y: number; width: number; height: number; id?: string; }
-  | { type: 'circle'; centerX: number; centerY: number; radius: number; id?: string; }
-  | { type: 'line'; startX: number; startY: number; endX: number; endY: number; id?: string; }
-  | { type: 'pencil'; points: { x: number; y: number }[]; id?: string; }
-  | { type: 'diamond'; centerX: number; centerY: number; width: number; height: number; id?: string; }
-  | { type: 'text'; x: number; y: number; content: string; fontSize?: number; id?: string; };
+type Shape =
+  | { type: "rect"; x: number; y: number; width: number; height: number; id?: string }
+  | { type: "circle"; centerX: number; centerY: number; radius: number; id?: string }
+  | { type: "line"; startX: number; startY: number; endX: number; endY: number; id?: string }
+  | { type: "pencil"; points: { x: number; y: number }[]; id?: string }
+  | { type: "diamond"; centerX: number; centerY: number; width: number; height: number; id?: string }
+  | { type: "text"; x: number; y: number; content: string; fontSize?: number; id?: string };
 
-// Extend Window interface for custom-Window
-interface CustomWindow extends Window {
-  selectedTool?: DrawingTool;
+function getSelectedTool(): DrawingTool {
+  const value = (window as Window & { selectedTool?: DrawingTool }).selectedTool;
+  return value && VALID_TOOLS.includes(value) ? value : "rect";
 }
-declare const window: CustomWindow;
+
+export interface DrawInstance {
+  redraw(): void;
+  cleanup(): void;
+  performUndo(): void;
+  setTheme(theme: string): void;
+  changeZoom(delta: number): number;
+  exportPNG(): void;
+}
 
 export async function initDraw(
   canvas: HTMLCanvasElement,
   roomId: string,
   socket: WebSocket,
   options?: {
-    onShapeAdded?: (shape: Shape) => void;
-    onShapeRemoved?: (shapeId: string) => void;
     onZoomChange?: (zoom: number) => void;
     theme?: string;
-  }
-) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  },
+): Promise<DrawInstance | null> {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
 
   let existingShapes: Shape[] = [];
+
   const pendingSocketEvents: MessageEvent[] = [];
   socket.onmessage = (event) => pendingSocketEvents.push(event);
-  socket.send(JSON.stringify({ type: 'join_room', roomId }));
+  socket.send(JSON.stringify({ type: "join_room", roomId }));
   try {
     existingShapes = await getExistingDShapes(roomId);
-    // Assign IDs to existing shapes if they don't have them
     existingShapes = existingShapes.map((shape, index) => {
       if (!shape.id) {
         return { ...shape, id: `existing-${index}` };
@@ -47,10 +51,9 @@ export async function initDraw(
       return shape;
     });
   } catch (error) {
-    console.error('Failed to initialize shapes:', error);
+    console.error("Failed to initialize shapes:", error);
   }
 
-  // Drawing state
   let isDrawing = false;
   let startX = 0;
   let startY = 0;
@@ -58,117 +61,107 @@ export async function initDraw(
   let isPanning = false;
   let panStartX = 0;
   let panStartY = 0;
-  let offsetX = 0; 
+  let offsetX = 0;
   let offsetY = 0;
-  let zoom = 1.0; 
+  let zoom = 1.0;
   let textInput: HTMLTextAreaElement | null = null;
   let panModeEnabled = false;
-  let spaceHeld = false;
-  const undoStack: Array<{ type: 'add' | 'remove', shape?: Shape, erasedShape?: Shape }> = [];
-  let canvasTheme = options?.theme || 'dark';
+  const undoStack: Array<{ type: "add" | "remove"; shape?: Shape; erasedShape?: Shape }> = [];
+  let canvasTheme = options?.theme || "dark";
 
-  // Space key handler for pan
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === 'Space' && textInput === null) {
+    if (e.code === "Space" && textInput === null) {
       e.preventDefault();
-      spaceHeld = true;
       panModeEnabled = true;
     }
   };
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.code === 'Space') {
-      spaceHeld = false;
+    if (e.code === "Space") {
       panModeEnabled = false;
     }
   };
-  window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('keyup', handleKeyUp);
+  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("keyup", handleKeyUp);
 
-  // Function to generate a unique ID for shapes
   const generateShapeId = () => {
     return `shape-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   };
 
-  // Function to create text input element
   const createTextInput = (x: number, y: number) => {
-    // Remove existing text input if any
     removeTextInput();
-    
-    textInput = document.createElement('textarea');
-    textInput.style.position = 'absolute';
+
+    textInput = document.createElement("textarea");
+    textInput.style.position = "absolute";
     textInput.style.left = `${x + offsetX}px`;
     textInput.style.top = `${y + offsetY}px`;
-    textInput.style.background = 'transparent';
-    textInput.style.color = canvasTheme === 'light' ? '#252331' : 'white';
-    textInput.style.border = `1px dashed ${canvasTheme === 'light' ? '#817d89' : 'white'}`;
-    textInput.style.padding = '4px';
-    textInput.style.minWidth = '100px';
-    textInput.style.minHeight = '30px';
-    textInput.style.resize = 'both';
-    textInput.style.outline = 'none';
-    textInput.style.zIndex = '1000';
-    textInput.style.fontFamily = 'sans-serif';
-    textInput.style.fontSize = '16px';
+    textInput.style.background = "transparent";
+    textInput.style.color = canvasTheme === "light" ? "#252331" : "white";
+    textInput.style.border = `1px dashed ${canvasTheme === "light" ? "#817d89" : "white"}`;
+    textInput.style.padding = "4px";
+    textInput.style.minWidth = "100px";
+    textInput.style.minHeight = "30px";
+    textInput.style.resize = "both";
+    textInput.style.outline = "none";
+    textInput.style.zIndex = "1000";
+    textInput.style.fontFamily = "sans-serif";
+    textInput.style.fontSize = "16px";
     textInput.style.transform = `scale(${zoom})`;
-    textInput.style.transformOrigin = 'top left';
-    
+    textInput.style.transformOrigin = "top left";
+
     document.body.appendChild(textInput);
     setTimeout(() => textInput?.focus(), 0);
-    
-    // Handle text submission with Enter key (Shift+Enter for new line)
-    textInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+
+    textInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         submitText();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         removeTextInput();
       }
     });
-    
-    // Handle blur event to submit text
-    textInput.addEventListener('blur', submitText);
-    
+
+    textInput.addEventListener("blur", submitText);
+
     return textInput;
   };
-  
-  // Function to submit text and add it as a shape
+
   const submitText = () => {
     if (textInput && textInput.value.trim()) {
       const rect = textInput.getBoundingClientRect();
       const canvasRect = canvas.getBoundingClientRect();
-      
-      // Calculate position relative to canvas and zoom
+
       const x = (rect.left - canvasRect.left - offsetX) / zoom;
       const y = (rect.top - canvasRect.top - offsetY) / zoom;
-      
+
       const shapeId = generateShapeId();
       const fontSize = parseInt(window.getComputedStyle(textInput).fontSize) / zoom;
-      
+
       const shape: Shape = {
-        type: 'text',
+        type: "text",
         x,
         y,
         content: textInput.value.trim(),
         fontSize,
-        id: shapeId
+        id: shapeId,
       };
-      
+
       existingShapes.push(shape);
-      
-      socket.send(JSON.stringify({
-        type: 'chat',
-        roomId,
-        message: JSON.stringify({ shape })
-      }));
-      
+
+      socket.send(
+        JSON.stringify({
+          type: "chat",
+          roomId,
+          message: JSON.stringify({ shape }),
+        }),
+      );
+
       removeTextInput();
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     } else if (textInput) {
       removeTextInput();
     }
   };
-  
-  // Function to remove text input
+
   const removeTextInput = () => {
     if (textInput && textInput.parentNode) {
       textInput.parentNode.removeChild(textInput);
@@ -176,32 +169,29 @@ export async function initDraw(
     }
   };
 
-  // Function to find a shape at a specific position
-  const findShapeAtPosition = (x: number, y: number): { shape: Shape, index: number } | null => {
-    // Check in reverse order to find the topmost shape first
+  const findShapeAtPosition = (x: number, y: number): { shape: Shape; index: number } | null => {
     for (let i = existingShapes.length - 1; i >= 0; i--) {
       const shape = existingShapes[i];
-      
+
       switch (shape.type) {
-        case 'rect':
-          if (x >= shape.x && x <= shape.x + shape.width &&
-              y >= shape.y && y <= shape.y + shape.height) {
+        case "rect":
+          if (x >= shape.x && x <= shape.x + shape.width && y >= shape.y && y <= shape.y + shape.height) {
             return { shape, index: i };
           }
           break;
-        case 'circle':
+        case "circle": {
           const distSquared = Math.pow(x - shape.centerX, 2) + Math.pow(y - shape.centerY, 2);
           if (distSquared <= Math.pow(shape.radius, 2)) {
             return { shape, index: i };
           }
           break;
-        case 'line':
-          // Check if point is near the line (rough approximation)
+        }
+        case "line": {
           const lineDistThreshold = 5; // Pixels tolerance
           const dx = shape.endX - shape.startX;
           const dy = shape.endY - shape.startY;
           const length = Math.sqrt(dx * dx + dy * dy);
-          
+
           if (length === 0) {
             const distToPoint = Math.sqrt(Math.pow(x - shape.startX, 2) + Math.pow(y - shape.startY, 2));
             if (distToPoint <= lineDistThreshold) {
@@ -219,18 +209,18 @@ export async function initDraw(
             }
           }
           break;
-        case 'pencil':
-          // Check if near any segment of the pencil line
+        }
+        case "pencil":
           for (let j = 1; j < shape.points.length; j++) {
-            const p1 = shape.points[j-1];
+            const p1 = shape.points[j - 1];
             const p2 = shape.points[j];
-            
+
             const segmentDx = p2.x - p1.x;
             const segmentDy = p2.y - p1.y;
             const segmentLength = Math.sqrt(segmentDx * segmentDx + segmentDy * segmentDy);
-            
+
             if (segmentLength === 0) continue;
-            
+
             const t = ((x - p1.x) * segmentDx + (y - p1.y) * segmentDy) / (segmentLength * segmentLength);
             if (t >= 0 && t <= 1) {
               const projX = p1.x + t * segmentDx;
@@ -242,37 +232,39 @@ export async function initDraw(
             }
           }
           break;
-        case 'diamond':
-          // Check if point is inside diamond
+        case "diamond": {
           const halfWidth = shape.width / 2;
           const halfHeight = shape.height / 2;
           const pointRelX = Math.abs(x - shape.centerX);
           const pointRelY = Math.abs(y - shape.centerY);
-          
+
           if (pointRelX / halfWidth + pointRelY / halfHeight <= 1) {
             return { shape, index: i };
           }
           break;
-        case 'text':
-          // Approximate text bounding box (would need refinement based on font metrics)
+        }
+        case "text": {
+          const fontSize = shape.fontSize || 16;
+          const previousFont = ctx.font;
+          ctx.font = `${fontSize}px sans-serif`;
           const textWidth = ctx.measureText(shape.content).width;
-          const textHeight = shape.fontSize || 16;
-          
-          if (x >= shape.x && x <= shape.x + textWidth &&
-              y >= shape.y - textHeight && y <= shape.y) {
+          ctx.font = previousFont;
+
+          if (x >= shape.x && x <= shape.x + textWidth && y >= shape.y - fontSize && y <= shape.y) {
             return { shape, index: i };
           }
           break;
+        }
       }
     }
     return null;
   };
- 
+
   const getCanvasPos = (e: MouseEvent) => {
     const rect = canvas.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left - offsetX) / zoom,
-      y: (e.clientY - rect.top - offsetY) / zoom
+      y: (e.clientY - rect.top - offsetY) / zoom,
     };
   };
 
@@ -281,47 +273,45 @@ export async function initDraw(
     startX = pos.x;
     startY = pos.y;
 
-    if (panModeEnabled || e.button === 1 || (e.shiftKey && e.button === 0)) { 
+    if (panModeEnabled || e.button === 1 || (e.shiftKey && e.button === 0)) {
       isPanning = true;
       panStartX = e.clientX;
       panStartY = e.clientY;
       return;
     }
 
-    // Handle text tool click
-    if (window.selectedTool === 'text') {
-      createTextInput(startX * zoom, startY * zoom);
+    if (getSelectedTool() === "text") {
+      createTextInput(startX, startY);
       return;
     }
-    
+
     isDrawing = true;
-    
-    // Handle eraser tool
-    if (window.selectedTool === 'eraser') {
+
+    if (getSelectedTool() === "eraser") {
       const foundShape = findShapeAtPosition(pos.x, pos.y);
       if (foundShape) {
         const { shape } = foundShape;
-        undoStack.push({ type: 'remove', erasedShape: shape });
-        // Remove the shape locally
-        existingShapes = existingShapes.filter(s => s.id !== shape.id);
-        // Notify other clients
-        socket.send(JSON.stringify({
-          type: 'chat',
-          roomId,
-          message: JSON.stringify({ eraseId: shape.id })
-        }));
+        undoStack.push({ type: "remove", erasedShape: shape });
+        existingShapes = existingShapes.filter((s) => s.id !== shape.id);
+        socket.send(
+          JSON.stringify({
+            type: "chat",
+            roomId,
+            message: JSON.stringify({ eraseId: shape.id }),
+          }),
+        );
         clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
       }
-    isDrawing = false;
-    return;
-  }
-  
-  if (window.selectedTool === 'pencil') {
-    pencilPoints = [{ x: startX, y: startY }];
-  }
-};
+      isDrawing = false;
+      return;
+    }
 
-canvas.addEventListener('mousedown', handleMouseDown);
+    if (getSelectedTool() === "pencil") {
+      pencilPoints = [{ x: startX, y: startY }];
+    }
+  };
+
+  canvas.addEventListener("mousedown", handleMouseDown);
 
   const handleMouseMove = (e: MouseEvent) => {
     if (isPanning) {
@@ -336,41 +326,38 @@ canvas.addEventListener('mousedown', handleMouseDown);
     }
 
     const pos = getCanvasPos(e);
-    
-    // Handle eraser hover effect
-    if (window.selectedTool === 'eraser') {
+
+    if (getSelectedTool() === "eraser") {
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-      
-      // Draw eraser cursor
+
       applyTransform(ctx, offsetX, offsetY, zoom);
-      ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
       ctx.lineWidth = 2;
       const eraserSize = 10;
-      ctx.strokeRect(pos.x - eraserSize/2, pos.y - eraserSize/2, eraserSize, eraserSize);
+      ctx.strokeRect(pos.x - eraserSize / 2, pos.y - eraserSize / 2, eraserSize, eraserSize);
       ctx.lineWidth = 1;
-      
-      // Highlight shape under cursor
+
       const foundShape = findShapeAtPosition(pos.x, pos.y);
       if (foundShape) {
         const { shape } = foundShape;
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-        
+        ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+
         switch (shape.type) {
-          case 'rect':
+          case "rect":
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
             break;
-          case 'circle':
+          case "circle":
             ctx.beginPath();
             ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
             ctx.stroke();
             break;
-          case 'line':
+          case "line":
             ctx.beginPath();
             ctx.moveTo(shape.startX, shape.startY);
             ctx.lineTo(shape.endX, shape.endY);
             ctx.stroke();
             break;
-          case 'pencil':
+          case "pencil":
             if (shape.points.length > 1) {
               ctx.beginPath();
               ctx.moveTo(shape.points[0].x, shape.points[0].y);
@@ -380,7 +367,7 @@ canvas.addEventListener('mousedown', handleMouseDown);
               ctx.stroke();
             }
             break;
-          case 'diamond':
+          case "diamond": {
             ctx.beginPath();
             const halfWidth = shape.width / 2;
             const halfHeight = shape.height / 2;
@@ -391,37 +378,39 @@ canvas.addEventListener('mousedown', handleMouseDown);
             ctx.closePath();
             ctx.stroke();
             break;
-          case 'text':
-            // Highlight text bounding box
+          }
+          case "text": {
+            const fontSize = shape.fontSize || 16;
+            const previousFont = ctx.font;
+            ctx.font = `${fontSize}px sans-serif`;
             const textWidth = ctx.measureText(shape.content).width;
-            const textHeight = shape.fontSize || 16;
-            ctx.strokeRect(shape.x, shape.y - textHeight, textWidth, textHeight);
+            ctx.font = previousFont;
+            ctx.strokeRect(shape.x, shape.y - fontSize, textWidth, fontSize);
             break;
+          }
         }
       }
       return;
     }
 
     if (!isDrawing) return;
-    
+
     const width = pos.x - startX;
     const height = pos.y - startY;
-    const selectedTool = window.selectedTool || 'rect';
+    const selectedTool = getSelectedTool();
 
-    // Don't preview for text tool
-    if (selectedTool === 'text') return;
+    if (selectedTool === "text") return;
 
-    // Preview drawing
     clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-    ctx.strokeStyle = canvasTheme === 'light' ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+    ctx.strokeStyle = canvasTheme === "light" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)";
     applyTransform(ctx, offsetX, offsetY, zoom);
     ctx.lineWidth = 1 / zoom;
 
     switch (selectedTool) {
-      case 'rect':
+      case "rect":
         ctx.strokeRect(startX, startY, width, height);
         break;
-      case 'circle':
+      case "circle": {
         ctx.beginPath();
         const centerX = startX + width / 2;
         const centerY = startY + height / 2;
@@ -429,16 +418,17 @@ canvas.addEventListener('mousedown', handleMouseDown);
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         ctx.stroke();
         break;
-      case 'line':
+      }
+      case "line":
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
         break;
-      case 'pencil':
+      case "pencil":
         pencilPoints.push({ x: pos.x, y: pos.y });
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
         ctx.moveTo(pencilPoints[0].x, pencilPoints[0].y);
         for (let i = 1; i < pencilPoints.length; i++) {
@@ -446,7 +436,7 @@ canvas.addEventListener('mousedown', handleMouseDown);
         }
         ctx.stroke();
         break;
-      case 'diamond':
+      case "diamond": {
         ctx.beginPath();
         const midX = startX + width / 2;
         const midY = startY + height / 2;
@@ -457,9 +447,10 @@ canvas.addEventListener('mousedown', handleMouseDown);
         ctx.closePath();
         ctx.stroke();
         break;
+      }
     }
   };
-  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener("mousemove", handleMouseMove);
 
   const handleMouseUp = (e: MouseEvent) => {
     if (isPanning) {
@@ -473,44 +464,42 @@ canvas.addEventListener('mousedown', handleMouseDown);
     const pos = getCanvasPos(e);
     const width = pos.x - startX;
     const height = pos.y - startY;
-    const selectedTool = window.selectedTool || 'rect';
-    
-    // Don't create shapes with eraser or text
-    if (selectedTool === 'eraser' || selectedTool === 'text') return;
+    const selectedTool = getSelectedTool();
 
-    // Generate a unique ID for the shape
+    if (selectedTool === "eraser" || selectedTool === "text") return;
+
     const shapeId = generateShapeId();
 
     let shape: Shape;
     switch (selectedTool) {
-      case 'rect':
-        shape = { type: 'rect', x: startX, y: startY, width, height, id: shapeId };
+      case "rect":
+        shape = { type: "rect", x: startX, y: startY, width, height, id: shapeId };
         break;
-      case 'circle':
+      case "circle":
         shape = {
-          type: 'circle',
+          type: "circle",
           centerX: startX + width / 2,
           centerY: startY + height / 2,
           radius: Math.max(Math.abs(width), Math.abs(height)) / 2,
-          id: shapeId
+          id: shapeId,
         };
         break;
-      case 'line':
-        shape = { type: 'line', startX, startY, endX: pos.x, endY: pos.y, id: shapeId };
+      case "line":
+        shape = { type: "line", startX, startY, endX: pos.x, endY: pos.y, id: shapeId };
         break;
-      case 'pencil':
+      case "pencil":
         pencilPoints.push({ x: pos.x, y: pos.y });
-        shape = { type: 'pencil', points: [...pencilPoints], id: shapeId };
+        shape = { type: "pencil", points: [...pencilPoints], id: shapeId };
         pencilPoints = [];
         break;
-      case 'diamond':
+      case "diamond":
         shape = {
-          type: 'diamond',
+          type: "diamond",
           centerX: startX + width / 2,
           centerY: startY + height / 2,
           width,
           height,
-          id: shapeId
+          id: shapeId,
         };
         break;
       default:
@@ -518,33 +507,37 @@ canvas.addEventListener('mousedown', handleMouseDown);
     }
 
     existingShapes.push(shape);
-    undoStack.push({ type: 'add', shape });
-    socket.send(JSON.stringify({
-      type: 'chat',
-      roomId,
-      message: JSON.stringify({ shape })
-    }));
+    undoStack.push({ type: "add", shape });
+    socket.send(
+      JSON.stringify({
+        type: "chat",
+        roomId,
+        message: JSON.stringify({ shape }),
+      }),
+    );
     clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
   };
-  canvas.addEventListener('mouseup', handleMouseUp);
+  canvas.addEventListener("mouseup", handleMouseUp);
 
   const handleMouseLeave = () => {
-    if (isDrawing && window.selectedTool === 'pencil') {
+    if (isDrawing && getSelectedTool() === "pencil") {
       isDrawing = false;
       const shapeId = generateShapeId();
-      const shape: Shape = { type: 'pencil', points: [...pencilPoints], id: shapeId };
+      const shape: Shape = { type: "pencil", points: [...pencilPoints], id: shapeId };
       existingShapes.push(shape);
-      socket.send(JSON.stringify({
-        type: 'chat',
-        roomId,
-        message: JSON.stringify({ shape })
-      }));
+      socket.send(
+        JSON.stringify({
+          type: "chat",
+          roomId,
+          message: JSON.stringify({ shape }),
+        }),
+      );
       pencilPoints = [];
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
     isPanning = false;
   };
-  canvas.addEventListener('mouseleave', handleMouseLeave);
+  canvas.addEventListener("mouseleave", handleMouseLeave);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
@@ -552,111 +545,112 @@ canvas.addEventListener('mousedown', handleMouseDown);
       const zoomFactor = 0.1;
       const mouseX = e.clientX - canvas.getBoundingClientRect().left;
       const mouseY = e.clientY - canvas.getBoundingClientRect().top;
-      
+
       const oldZoom = zoom;
       zoom += e.deltaY < 0 ? zoomFactor : -zoomFactor;
-      zoom = Math.max(0.1, Math.min(zoom, 5.0)); 
+      zoom = Math.max(0.1, Math.min(zoom, 5.0));
 
-      // Notify parent of zoom change
       options?.onZoomChange?.(zoom);
 
-      // Adjust offset to zoom towards mouse
       offsetX = mouseX - (mouseX - offsetX) * (zoom / oldZoom);
       offsetY = mouseY - (mouseY - offsetY) * (zoom / oldZoom);
 
-      // Update text input position if it exists
       if (textInput) {
         const rect = textInput.getBoundingClientRect();
-        const x = (rect.left - canvas.getBoundingClientRect().left - offsetX) / oldZoom * zoom + offsetX;
-        const y = (rect.top - canvas.getBoundingClientRect().top - offsetY) / oldZoom * zoom + offsetY;
-        
+        const x = ((rect.left - canvas.getBoundingClientRect().left - offsetX) / oldZoom) * zoom + offsetX;
+        const y = ((rect.top - canvas.getBoundingClientRect().top - offsetY) / oldZoom) * zoom + offsetY;
+
         textInput.style.left = `${x}px`;
         textInput.style.top = `${y}px`;
         textInput.style.transform = `scale(${zoom})`;
       }
 
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
-    } else { 
+    } else {
       offsetX -= e.deltaX;
       offsetY -= e.deltaY;
-      
-      // Update text input position if it exists
+
       if (textInput) {
         const rect = textInput.getBoundingClientRect();
         textInput.style.left = `${rect.left - e.deltaX}px`;
         textInput.style.top = `${rect.top - e.deltaY}px`;
       }
-      
+
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     }
   };
-  canvas.addEventListener('wheel', handleWheel, { passive: false });
+  canvas.addEventListener("wheel", handleWheel, { passive: false });
 
-  // Cleanup event listener when component unmounts
   const handleBeforeUnload = () => {
     removeTextInput();
   };
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
   clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
 
   const handleSocketMessage = (event: MessageEvent) => {
     try {
       const message = JSON.parse(event.data);
-      if (message.type !== 'chat') return;
+      if (message.type !== "chat") return;
       const parsedData = JSON.parse(message.message);
-      if (parsedData.shape && VALID_TOOLS.filter((tool) => tool !== 'eraser').includes(parsedData.shape.type)) {
+      if (
+        parsedData.shape &&
+        VALID_TOOLS.filter((tool) => tool !== "eraser").includes(parsedData.shape.type)
+      ) {
         const newShape = parsedData.shape as Shape;
-        if (!existingShapes.some((shape) => shape.id && shape.id === newShape.id)) existingShapes.push(newShape);
+        if (!existingShapes.some((shape) => shape.id && shape.id === newShape.id))
+          existingShapes.push(newShape);
       } else if (parsedData.eraseId) {
         existingShapes = existingShapes.filter((shape) => shape.id !== parsedData.eraseId);
-        options?.onShapeRemoved?.(parsedData.eraseId);
       }
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     } catch (error) {
-      console.error('WebSocket message error:', error);
+      console.error("WebSocket message error:", error);
     }
   };
   socket.onmessage = handleSocketMessage;
-  socket.onerror = (error) => console.error('WebSocket error:', error);
-  socket.onclose = () => console.log('WebSocket connection closed');
+  socket.onerror = (error) => console.error("WebSocket error:", error);
+  socket.onclose = () => console.log("WebSocket connection closed");
   pendingSocketEvents.forEach(handleSocketMessage);
+  pendingSocketEvents.length = 0;
 
-  // Return utility functions for use by parent component
   return {
     redraw: () => clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme),
     cleanup: () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseLeave);
-      canvas.removeEventListener('wheel', handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      canvas.removeEventListener("wheel", handleWheel);
       socket.onmessage = null;
       socket.onerror = null;
       socket.onclose = null;
       removeTextInput();
     },
-    setPanningMode: (active: boolean) => { panModeEnabled = active; },
     performUndo: () => {
       const action = undoStack.pop();
       if (!action) return;
-      if (action.type === 'add' && action.shape) {
-        existingShapes = existingShapes.filter(s => s.id !== action.shape!.id);
-        socket.send(JSON.stringify({
-          type: 'chat',
-          roomId,
-          message: JSON.stringify({ eraseId: action.shape.id })
-        }));
-      } else if (action.type === 'remove' && action.erasedShape) {
+      if (action.type === "add" && action.shape) {
+        existingShapes = existingShapes.filter((s) => s.id !== action.shape!.id);
+        socket.send(
+          JSON.stringify({
+            type: "chat",
+            roomId,
+            message: JSON.stringify({ eraseId: action.shape.id }),
+          }),
+        );
+      } else if (action.type === "remove" && action.erasedShape) {
         existingShapes.push(action.erasedShape);
-        socket.send(JSON.stringify({
-          type: 'chat',
-          roomId,
-          message: JSON.stringify({ shape: action.erasedShape })
-        }));
+        socket.send(
+          JSON.stringify({
+            type: "chat",
+            roomId,
+            message: JSON.stringify({ shape: action.erasedShape }),
+          }),
+        );
       }
       clearCanvas(existingShapes, canvas, ctx, offsetX, offsetY, zoom, canvasTheme);
     },
@@ -677,65 +671,96 @@ canvas.addEventListener('mousedown', handleMouseDown);
       return zoom;
     },
     exportPNG: () => {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.download = `sketchflow-${roomId}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL("image/png");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    }
+    },
   };
 }
 
-// Moved applyTransform outside initDraw
 function applyTransform(ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0); 
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(offsetX, offsetY);
   ctx.scale(zoom, zoom);
 }
 
-function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, offsetX: number, offsetY: number, zoom: number, theme?: string) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0); 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const isLight = theme === 'light';
-  ctx.fillStyle = isLight ? 'rgba(252, 251, 253, 1)' : 'rgba(17, 16, 23, 1)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+function getBackgroundPattern(ctx: CanvasRenderingContext2D, theme: string): CanvasPattern | string {
+  const isLight = theme === "light";
+  const key = isLight ? "light" : "dark";
+
+  const cached = backgroundPatterns.get(key);
+  if (cached) return cached;
+
+  const tile = document.createElement("canvas");
+  tile.width = 18;
+  tile.height = 18;
+
+  const tileCtx = tile.getContext("2d");
+  if (!tileCtx) return isLight ? "rgba(252, 251, 253, 1)" : "rgba(17, 16, 23, 1)";
+
+  tileCtx.fillStyle = isLight ? "rgba(252, 251, 253, 1)" : "rgba(17, 16, 23, 1)";
+  tileCtx.fillRect(0, 0, tile.width, tile.height);
+
   if (isLight) {
-    ctx.fillStyle = 'rgba(217, 212, 226, 0.72)';
-    for (let x = 9; x < canvas.width; x += 18) {
-      for (let y = 9; y < canvas.height; y += 18) {
-        ctx.beginPath();
-        ctx.arc(x, y, 0.8, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
+    tileCtx.fillStyle = "rgba(217, 212, 226, 0.72)";
+    tileCtx.beginPath();
+    tileCtx.arc(9, 9, 0.8, 0, 2 * Math.PI);
+    tileCtx.fill();
   }
 
-  ctx.strokeStyle = isLight ? 'rgba(80, 75, 90, 1)' : 'rgba(255, 255, 255, 1)';
+  const pattern = ctx.createPattern(tile, "repeat");
+  const value: CanvasPattern | string =
+    pattern ?? (isLight ? "rgba(252, 251, 253, 1)" : "rgba(17, 16, 23, 1)");
+  backgroundPatterns.set(key, value);
+  return value;
+}
+
+const backgroundPatterns = new Map<string, CanvasPattern | string>();
+
+function clearCanvas(
+  existingShapes: Shape[],
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+  theme?: string,
+) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const isLight = theme === "light";
+  ctx.fillStyle = getBackgroundPattern(ctx, theme ?? "dark");
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = isLight ? "rgba(80, 75, 90, 1)" : "rgba(255, 255, 255, 1)";
   applyTransform(ctx, offsetX, offsetY, zoom);
   ctx.lineWidth = 1 / zoom;
-  ctx.font = '16px sans-serif'; // Set default font
+  ctx.font = "16px sans-serif"; // Set default font
 
   existingShapes.forEach((shape) => {
     switch (shape.type) {
-      case 'rect':
+      case "rect":
         ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
         break;
-      case 'circle':
+      case "circle":
         ctx.beginPath();
         ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
         ctx.stroke();
         break;
-      case 'line':
+      case "line":
         ctx.beginPath();
         ctx.moveTo(shape.startX, shape.startY);
         ctx.lineTo(shape.endX, shape.endY);
         ctx.stroke();
         break;
-      case 'pencil':
+      case "pencil":
         if (shape.points.length > 1) {
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           ctx.beginPath();
           ctx.moveTo(shape.points[0].x, shape.points[0].y);
           for (let i = 1; i < shape.points.length; i++) {
@@ -744,7 +769,7 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
           ctx.stroke();
         }
         break;
-      case 'diamond':
+      case "diamond": {
         ctx.beginPath();
         const halfWidth = shape.width / 2;
         const halfHeight = shape.height / 2;
@@ -755,28 +780,40 @@ function clearCanvas(existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
         ctx.closePath();
         ctx.stroke();
         break;
-      case 'text':
+      }
+      case "text": {
         if (shape.fontSize) {
           ctx.font = `${shape.fontSize}px sans-serif`;
         }
-        ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+        ctx.fillStyle = isLight ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 1)";
         ctx.fillText(shape.content, shape.x, shape.y);
-        ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // Reset fill style
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = isLight ? "rgba(80, 75, 90, 1)" : "rgba(255, 255, 255, 1)";
         break;
+      }
     }
   });
 }
 
 async function getExistingDShapes(roomId: string): Promise<Shape[]> {
   try {
-    const res = await axios.get(`${HTTP_BACKEND}/chats/${roomId}`);
-    const messages: { id: number; message: string }[] = res.data.messages || [];
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${HTTP_BACKEND}/chats/${roomId}`, {
+      headers: token ? authHeaders(token) : {},
+    });
+
+    if (response.status === 401) return [];
+
+    const data: { messages?: { id: number; message: string }[] } = await response.json();
+    if (!response.ok) return [];
+
+    const messages = data.messages ?? [];
     const shapes: Shape[] = [];
 
     for (const chat of messages) {
       try {
         const parsed = JSON.parse(chat.message);
-        if (parsed.shape && VALID_TOOLS.filter((tool) => tool !== 'eraser').includes(parsed.shape.type)) {
+        if (parsed.shape && VALID_TOOLS.filter((tool) => tool !== "eraser").includes(parsed.shape.type)) {
           const shape = parsed.shape as Shape;
           if (!shape.id) shape.id = `chat-${chat.id}`;
           if (!shapes.some((entry) => entry.id === shape.id)) shapes.push(shape);
@@ -785,12 +822,12 @@ async function getExistingDShapes(roomId: string): Promise<Shape[]> {
           if (index !== -1) shapes.splice(index, 1);
         }
       } catch {
-        console.warn('Invalid board event:', chat.id);
+        console.warn("Invalid board event:", chat.id);
       }
     }
     return shapes;
   } catch (error) {
-    console.error('Failed to fetch shapes:', error);
+    console.error("Failed to fetch shapes:", error);
     return [];
   }
 }

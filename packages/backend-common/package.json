@@ -1,21 +1,39 @@
 {
   "name": "@repo/backend-common",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
   "exports": {
-    "./config": "./src/index.ts"
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    },
+    "./password": {
+      "types": "./dist/password.d.ts",
+      "default": "./dist/password.js"
+    },
+    "./token": {
+      "types": "./dist/token.d.ts",
+      "default": "./dist/token.js"
+    }
   },
+  "main": "./dist/config.js",
+  "types": "./dist/config.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.15.0",
+    "typescript": "5.5.4"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@types/node": "^22.10.5"
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.7",
+    "jsonwebtoken": "^9.0.2"
   }
 }
