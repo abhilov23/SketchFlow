@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-2xl: 1400px;
 }
 
 @layer base {
   :root {
+    --background: 40 33% 98%;
+    --foreground: 249 10% 16%;
+    --border: 260 14% 91%;
   }
 
   * {
