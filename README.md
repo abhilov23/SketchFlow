@@ -8,9 +8,45 @@ Stack: **Next.js 15** (App Router, React 19, Tailwind v4) · **Express 4** REST 
 
 ![SketchFlow system design](docs/architecture.png)
 
-> Full interactive diagrams — container view, auth sequence, authorization
-> decision tree, ER model, and realtime event flow — are in
-> [docs/architecture.md](docs/architecture.md).
+Source: [`docs/architecture.svg`](docs/architecture.svg)
+
+---
+
+## Architecture
+
+SketchFlow runs as **three independent processes** rather than one monolithic app.
+
+- **`sketchflow-frontend`** (`:3000`) renders the UI and owns no state worth losing.
+  The canvas is an imperative Canvas 2D engine driven from React through a small
+  handle object, because redrawing hundreds of shapes through the React reconciler
+  on every mouse move would not hold frame rate.
+- **`http-backend`** (`:3005`) is the only process that talks to Postgres. Every
+  authentication decision and every persisted write goes through it.
+- **`ws-backend`** (`:8089`) handles realtime fan-out only. It never renders HTML.
+
+The split exists because the two access patterns conflict. Realtime connections are
+long-lived, stateful and cheap to hold open; API requests are short, cacheable and
+want strict auth middleware. Keeping them in one process would force one deployment
+unit to scale for both, and a slow socket broadcast would stall HTTP requests.
+
+The two servers share `@repo/backend-common`, so JWT signing and verification use
+literally the same code path — a token minted on `:3005` validates on `:8089`
+without any shared session store.
+
+### Request flow at a glance
+
+Opening a board is four round trips, and each one is a place authorization can fail:
+
+1. `GET /room/:slug` — is the caller a member? A `404` here means not yet.
+2. `POST /room/:slug/join` — only then, if the board was shared with them.
+3. `GET /chats/:roomId` — replay the event log and rebuild the shape list.
+4. WebSocket connect — subscribe to live drawing events.
+
+### Shared packages
+
+The shared packages exist to eliminate the class of bug where the browser validates
+something the server does not. There is exactly **one** definition of every request
+schema, in `@repo/common`, and both the forms and the API import it.
 
 ---
 
@@ -81,6 +117,60 @@ packages/
 Every package is `private` and compiled to `dist/`. `turbo` builds dependencies
 before dependents, and `dev` depends on `^build` so shared packages are always current.
 
+### How the pieces connect
+
+```mermaid
+flowchart LR
+  Browser["Browser<br/><small>Next.js 15 · React 19 · Tailwind v4</small>"]
+
+  subgraph Node["Node processes (Node >= 22.18)"]
+    Frontend["sketchflow-frontend<br/><small>:3000 · App Router</small>"]
+    Api["http-backend<br/><small>:3005 · Express 4</small>"]
+    Ws["ws-backend<br/><small>:8089 · ws</small>"]
+  end
+
+  DB[("PostgreSQL<br/><small>Prisma 6.5 · Neon</small>")]
+
+  Browser -->|"HTTPS · Bearer JWT"| Api
+  Browser <-->|"WSS · ?token=…"| Ws
+  Api -->|"Prisma"| DB
+  Ws -->|"Prisma"| DB
+
+  classDef web fill:#7c3aed,stroke:#5b21b6,color:#fff
+  classDef svc fill:#ffffff,stroke:#d9d4e2,color:#211f2b
+  classDef data fill:#211f2b,stroke:#211f2b,color:#fff
+  class Browser,Frontend web
+  class Api,Ws svc
+  class DB data
+```
+
+`http-backend` and `ws-backend` both import the same `@repo/backend-common` module,
+so a token minted on `:3005` verifies identically on `:8089`.
+
+```mermaid
+flowchart TB
+  subgraph pkgs["packages/ — private, compiled to dist/"]
+    Common["@repo/common<br/><small>Zod schemas</small>"]
+    BackendCommon["@repo/backend-common<br/><small>env · bcrypt · JWT</small>"]
+    Db["@repo/db<br/><small>Prisma client</small>"]
+    Eslint["@repo/eslint-config"]
+    Tsconfig["@repo/typescript-config"]
+  end
+
+  Frontend["sketchflow-frontend"] --> Common
+  Api["http-backend"] --> Common
+  Api --> BackendCommon
+  Ws["ws-backend"] --> BackendCommon
+  Api --> Db
+  Ws --> Db
+  Db --> BackendCommon
+
+  Frontend --> Tsconfig
+  Frontend --> Eslint
+  Api --> Eslint
+  Ws --> Eslint
+```
+
 ---
 
 ## HTTP API
@@ -105,6 +195,39 @@ authenticated but not the owner, `404` not found or not a member, `409` name tak
 ---
 
 ## Data model
+
+```mermaid
+erDiagram
+  User ||--o{ Room : "owns"
+  User ||--o{ RoomMember : "joins"
+  Room ||--o{ RoomMember : "has"
+  Room ||--o{ Chat : "event log"
+  User ||--o{ Chat : "authored"
+
+  User {
+    string id PK
+    string email UK
+    string password "bcrypt hash"
+    string name
+  }
+  Room {
+    int id PK
+    string slug UK
+    datetime createdAt
+    string adminId FK
+  }
+  RoomMember {
+    int roomId PK,FK
+    string userId PK,FK
+    datetime joinedAt
+  }
+  Chat {
+    int id PK
+    int roomId FK
+    string message "JSON drawing event"
+    string userId FK
+  }
+```
 
 - **User** — `email` (unique), bcrypt `password`, `name`.
 - **Room** — a board. `slug` is unique and appears in the URL. `adminId` is the owner.
@@ -134,9 +257,141 @@ The toolbar wraps to a second row on narrow viewports rather than overflowing, a
 the Share button copies the board URL with a clipboard fallback for non-secure
 origins, confirming success or failure inline.
 
+### Loading a board
+
+```mermaid
+flowchart LR
+  S["/canvas/:slug"] --> T{"token in<br/>localStorage?"}
+  T -->|no| Sign["Redirect /signin"]
+  T -->|yes| L["GET /room/:slug"]
+  L -->|"404 → not a member"| J["POST /room/:slug/join"]
+  L -->|"200 → member"| R["GET /chats/:roomId"]
+  J --> R
+  R -->|"404"| Err["Not found / no access"]
+  R -->|"200 messages"| Hydrate["Replay event log<br/>rebuild shape array"]
+  Hydrate --> C["Canvas mounts"]
+  C --> WS["WebSocket connects<br/>join_room"]
+```
+
+The `404 → join` fallback is what makes the Share button work: a recipient who has
+never opened the board gets `404` on lookup, and the client transparently joins via
+the shared link instead of showing an error. A second collaborator is therefore
+indistinguishable from the owner once they have opened the link once.
+
+### Live drawing
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as Client A
+  participant W as ws-backend
+  participant D as PostgreSQL
+  participant B as Client B
+
+  A->>W: connect ?token=…
+  W->>W: verify JWT → reject 1008 if invalid
+  A->>W: { type: "join_room", roomId }
+  W->>D: SELECT RoomMember (must exist)
+
+  Note over A: User draws a shape
+  A->>W: { type: "chat", roomId, message: { shape } }
+  W->>D: re-check membership on EVERY message
+  W->>D: INSERT INTO Chat
+  W-->>B: broadcast to room subscribers
+  W-->>A: broadcast
+
+  loop every 30s
+    W->>W: ping / terminate half-open sockets
+  end
+```
+
+The token travels in the query string because browsers cannot set headers on a
+WebSocket handshake. That is also why tokens **must expire** — a URL ends up in
+proxy logs and browser history in a way an `Authorization` header does not.
+
+Drawing events ride the same `chat` frame type that the event log uses, so a stroke
+is broadcast to peers and persisted in one step. There is no separate in-memory
+state: the canvas is rebuilt by replaying the log, which is what makes a refresh
+restore the board exactly.
+
+Every 30 seconds the server pings each socket and drops the ones that missed two
+rounds. Without that, half-open connections accumulate in the subscriber map and the
+process leaks memory slowly.
+
 ---
 
 ## Security
+
+### Signing in
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant F as Frontend
+  participant A as http-backend
+  participant D as PostgreSQL
+
+  U->>F: Submit sign-in form
+  F->>F: Zod validate (shared schema)
+  F->>A: POST /signin
+  A->>A: Rate limit (20 / 15 min / IP)
+  A->>D: SELECT user BY email
+  D-->>A: user + password hash
+  A->>A: bcrypt.compare against hash<br/>(dummy hash if no user)
+  opt Legacy plaintext row
+    A->>D: UPDATE re-hash password
+  end
+  A-->>F: 200 { token } (signed, expires)
+  F->>F: localStorage.token
+
+  Note over F: Bearer auth on every later call
+  F->>A: GET /rooms  (Authorization: Bearer …)
+  A->>A: verify signature + exp
+  A-->>F: 200 { room: [...] }
+```
+
+Three details in that flow are deliberate and worth calling out.
+
+The schema is validated **twice** — once in the browser for instant feedback, once on
+the server because a browser check is a courtesy, not a control. Both use the same
+Zod object, so they cannot drift.
+
+Password comparison runs against a **dummy bcrypt hash when the account does not
+exist**. Without it, a missing account returns measurably faster than a wrong
+password, which turns `/signin` into an account-enumeration oracle.
+
+The `opt` branch is a one-time migration. Rows written before hashing existed are
+re-hashed on the next successful sign-in and never compared in plaintext again,
+which means upgrading the app does not require resetting anyone's password.
+
+### Authorization
+
+Every board read follows the same two-gate decision:
+
+```mermaid
+flowchart TB
+  Req["GET /room/:slug<br/>or GET /chats/:roomId"] --> Token{"Bearer token<br/>valid + unexpired?"}
+  Token -->|no| E401["401"]
+  Token -->|yes| Member{"RoomMember row<br/>exists for userId?"}
+  Member -->|no| E404["404<br/><small>does not confirm existence</small>"]
+  Member -->|yes| Ok["200 data"]
+
+  style E401 fill:#fee2e2,stroke:#dc2626,color:#991b1b
+  style E404 fill:#fee2e2,stroke:#dc2626,color:#991b1b
+  style Ok fill:#dcfce7,stroke:#16a34a,color:#166534
+```
+
+A non-member gets `404`, not `403`. Returning `403` would confirm the board exists,
+which leaks the entire `Room` table to anyone who can guess a slug — and room ids are
+sequential integers, so `GET /chats/:roomId` would otherwise be enumerable by simply
+counting.
+
+The same check runs on the **WebSocket side**, and it runs on every message rather
+than only at `join_room`. Revoking someone's membership therefore takes effect
+immediately instead of lingering until their next reconnect.
+
+### Summary
 
 - Passwords are hashed with bcrypt (cost 12 by default). The sign-in path performs a
   transparent one-time upgrade for any row still holding a legacy plaintext password.
